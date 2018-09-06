@@ -34,15 +34,17 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Management" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>SharedAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="Builder.cs" />
     <Compile Include="CompositeBuilder.cs" />
     <Compile Include="DecoratorBuilder.cs" />
+    <Compile Include="IPatternBuilder.cs" />
     <Compile Include="MemberMetadata.cs" />
+    <Compile Include="StringWriter.cs" />
     <Compile Include="StubBuilder.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Program.cs" />

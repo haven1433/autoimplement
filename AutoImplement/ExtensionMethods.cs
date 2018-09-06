@@ -31,15 +31,31 @@ namespace AutoImplement
       {
          // dealing with generic arguments
          var genericArgList = type.GetGenericArguments().Select(arg => arg.CreateCsName(currentNamespace)).ToList();
-         string genericArguments = genericArgList.Count == 0 ? string.Empty : "<" + genericArgList.Aggregate((a, b) => $"{a}, {b}") + ">";
+         string genericArguments = string.Empty;
+         if (genericArgList.Count != 0) {
+            genericArguments = "<" + genericArgList.Aggregate((a, b) => $"{a}, {b}") + ">";
+         }
 
-         var result = type.FullName ?? type.Name;                                // example: 'T' (type is a generic argument)
-         result = result.Replace("&", string.Empty);                             // remove the '&' appended to ref/out parameters
-         result = result.Split('`')[0] + genericArguments;                       // example: List`1 -> List<T>
-         if (typeList.ContainsKey(result)) result = typeList[result];            // example: System.Int32 -> int
+         var result = type.FullName ?? type.Name;                       // example: 'T' (type is a generic argument)
+         result = result.Replace("&", string.Empty);                    // remove the '&' appended to ref/out parameters
+         result = result.Split('`')[0] + genericArguments;              // example: List`1 -> List<T>
+         if (typeList.ContainsKey(result)) result = typeList[result];   // example: System.Int32 -> int
          var scope = currentNamespace + ".";
-         if (result.StartsWith(scope)) result = result.Substring(scope.Length);  // example: My.Current.Namespace.CustomType -> CustomType
+         if (result.StartsWith(scope)) {
+            result = result.Substring(scope.Length);                    // example: My.Namespace.CustomType -> CustomType
+         }
          return result;
+      }
+
+      public static (string name, string genericInfo) ExtractImplementingNameParts(this string originalName) {
+         var genericStart = originalName.IndexOf("<");
+         var genericPart = genericStart == -1 ? string.Empty : originalName.Substring(genericStart);
+
+         // most interfaces start with a leading 'I' that we don't want to be part of the child class name.
+         int skipFirstCharacter = originalName.StartsWith("I") ? 1 : 0;
+         var nameLength = originalName.Length - skipFirstCharacter - genericPart.Length;
+         var name = originalName.Substring(skipFirstCharacter, nameLength);
+         return (name, genericPart);
       }
    }
 }

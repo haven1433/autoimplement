@@ -1,97 +1,155 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
 namespace AutoImplement {
-   public class CompositeBuilder : Builder {
+   public class CompositeBuilder : IPatternBuilder {
       private readonly List<string> implementedMethods = new List<string>();
 
-      protected override string ClassNamePrefix => "Composite";
+      private readonly StringWriter writer;
 
-      protected override void AppendMethod(MethodInfo info, MemberMetadata method) {
-         var parent = info.DeclaringType.CreateCsName(info.DeclaringType.Namespace);
+      public CompositeBuilder(StringWriter writer) => this.writer = writer;
 
+      public string ClassDeclaration(Type interfaceType) {
+         var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
+         var (basename, genericInfo) = interfaceName.ExtractImplementingNameParts();
+
+         return $"Composite{basename}{genericInfo} : System.Collections.Generic.List<{interfaceName}>, {interfaceName}";
+      }
+
+      public void AppendExtraMembers(Type interfaceType) { }
+
+      // <example>
+      // public void DoThing(int arg)
+      // {
+      //    for (int i = 0; i < base.Count; i++)
+      //    {
+      //       base[i].DoThing(arg);
+      //    }
+      // }
+      // </example>
+      /// <remarks>
+      /// Composite methods with return types are a bit strange.
+      /// If all the methods agree on what to return, then return that.
+      /// If any are different, then just return default.
+      /// In the case of nullables and bools, this default seems appropriate.
+      /// But it can be strange for numeric types.
+      /// 
+      /// For methods that return void, a composite simply forwards the method call down to each thing that it contains.
+      /// </remarks>
+      public void AppendMethod(MethodInfo info, MemberMetadata method) {
          // Use an explicit implementation only if the signature has already been used
          // example: IEnumerable<T>, which extends IEnumerable
          if (!implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
-            AppendLine($"public {method.ReturnType} {method.Name}({method.ParameterTypesAndNames})");
+            writer.Write($"public {method.ReturnType} {method.Name}({method.ParameterTypesAndNames})");
          } else {
-            AppendLine($"{method.ReturnType} {parent}.{method.Name}({method.ParameterTypesAndNames})");
+            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}({method.ParameterTypesAndNames})");
          }
 
-         using (Indent()) {
-            AssignDefaultValuesToOutParameters(info);
+         using (writer.Indent()) {
+            writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
 
             if (method.ReturnType == "void") {
-               AppendLine($"for (int i = 0; i < base.Count; i++)");
-               using (Indent())
-               {
-                  AppendLine($"base[i].{method.Name}({method.ParameterNames});");
+               writer.Write("for (int i = 0; i < base.Count; i++)");
+               using (writer.Indent()) {
+                  writer.Write($"base[i].{method.Name}({method.ParameterNames});");
                }
             } else {
-               AppendLine($"var results = new System.Collections.Generic.List<{method.ReturnType}>();");
-               AppendLine($"for (int i = 0; i < base.Count; i++)");
-               using (Indent())
-               {
-                  AppendLine($"results.Add(base[i].{method.Name}({method.ParameterNames}));");
+               writer.Write($"var results = new System.Collections.Generic.List<{method.ReturnType}>();");
+               writer.Write("for (int i = 0; i < base.Count; i++)");
+               using (writer.Indent()) {
+                  writer.Write($"results.Add(base[i].{method.Name}({method.ParameterNames}));");
                }
-               AppendLine($"return results.Count > 0 && results.All(result => result.Equals(results[0])) ? results[0] : default({method.ReturnType});");
+               writer.Write("if (results.Count > 0 && results.All(result => result.Equals(results[0])))");
+               using (writer.Indent()) {
+                  writer.Write("return results[0];");
+               }
+               writer.Write($"return default({method.ReturnType});");
             }
          }
 
          implementedMethods.Add($"{method.Name}({method.ParameterTypes})");
       }
 
-      protected override void AppendProperty(PropertyInfo info, MemberMetadata property) {
-         // define the backing field
-         AppendLine($"public {property.ReturnType} {property.Name}");
-         using (Indent()) {
-            if (info.CanRead) {
-               AppendLine("get");
-               using (Indent()) {
-                  AppendLine($"var results = this.Select<{property.DeclaringType}, {property.ReturnType}>(listItem => listItem.{property.Name}).ToList();");
-                  AppendLine($"return results.Count > 0 && results.All(result => result.Equals(results[0])) ? results[0] : default({property.ReturnType});");
-               }
+      // <example>
+      // public event EventHandler MyEvent
+      // {
+      //    add
+      //    {
+      //       this.ForEach(listItem => listItem.MyEvent += value;
+      //    }
+      //    remove
+      //    {
+      //       this.ForEach(listItem => listItem.MyEvent -= value;
+      //    }
+      // }
+      // </example>
+      /// <remarks>
+      /// Event implementations are allowed to provide bodies for what to do in the add/remove cases.
+      /// In this case, the most appropriate action is just to forward the notification down to the contained items.
+      /// </remarks>
+      public void AppendEvent(EventInfo info, MemberMetadata eventData) {
+         writer.Write($"public event {eventData.HandlerType} {eventData.Name}");
+         using (writer.Indent()) {
+            writer.Write("add");
+            using (writer.Indent()) {
+               writer.Write($"this.ForEach(listItem => listItem.{eventData.Name} += value);");
             }
-            if (info.CanWrite) {
-               AppendLine("set");
-               using (Indent()) {
-                  AppendLine($"this.ForEach(listItem => listItem.{property.Name} = value);");
-               }
-            }
-         }
-      }
-
-      /// <summary>
-      /// the 'Item' property in C# is special: it's exposed as this[]
-      /// </summary>
-      protected override void AppendItemProperty(PropertyInfo info, MemberMetadata property) {
-         AppendLine($"public {property.ReturnType} this[{property.ParameterTypesAndNames}]");
-         using (Indent()) {
-            if (info.CanRead) {
-               AppendLine("get");
-               using (Indent()) {
-                  AppendLine($"var results = this.Select<{property.DeclaringType}, {property.ReturnType}>(listItem => listItem[{property.ParameterNames}]).ToList();");
-                  AppendLine($"return results.All(result => result.Equals(results[0])) ? results[0] : default({property.ReturnType});");
-               }
-            }
-            if (info.CanWrite) {
-               AppendLine("set");
-               using (Indent()) AppendLine($"this.ForEach(listItem => listItem[{property.ParameterNames}] = value);");
+            writer.Write("remove");
+            using (writer.Indent()) {
+               writer.Write($"this.ForEach(listItem => listItem.{eventData.Name} -= value);");
             }
          }
       }
 
-      protected override void AppendEvent(EventInfo info, MemberMetadata eventData) {
-         AppendLine($"public event {eventData.HandlerType} {eventData.Name}");
-         using (Indent()) {
-            AppendLine("add");
-            using (Indent()) {
-               AppendLine($"this.ForEach(listItem => listItem.{eventData.Name} += value);");
+      // <example>
+      // public string MyProperty
+      // {
+      //    get
+      //    {
+      //       var results = this.Select(listItem => listItem.MyProperty).ToList();
+      //       return results.Count > 0 && results.All(result => result.Equals(results[0])) ? results[0] : default(string);
+      //    }
+      //    set
+      //    { 
+      //       this.ForEach(listItem => listItem.MyProperty = value);
+      //    }
+      // }
+      // </example>
+      /// <remarks>
+      /// Get accessors work mostly the same way as methods with return types: return a single value, if they all match.
+      /// This can be useful for aggregating similar results up, if the property is nullable.
+      /// Set accessors work fine for Composites: just set the property for each item in the composite.
+      /// </remarks>
+      public void AppendProperty(PropertyInfo info, MemberMetadata property) {
+         writer.Write($"public {property.ReturnType} {property.Name}");
+         AppendPropertyCommon(info, property, $"listItem.{ property.Name}");
+      }
+
+      /// <remarks>
+      /// Item properties are a bit special in .Net, since they're exposed as the [] accessor.
+      /// However, for composites, they're much the same as normal propreties.
+      /// </remarks>
+      public void AppendItemProperty(PropertyInfo info, MemberMetadata property) {
+         writer.Write($"public {property.ReturnType} this[{property.ParameterTypesAndNames}]");
+         AppendPropertyCommon(info, property, $"listItem[{property.ParameterNames}]");
+      }
+
+      private void AppendPropertyCommon(PropertyInfo info, MemberMetadata property, string listItem) {
+         using (writer.Indent()) {
+            if (info.CanRead) {
+               writer.Write("get");
+               using (writer.Indent()) {
+                  writer.Write($"var results = this.Select<{property.DeclaringType}, {property.ReturnType}>(listItem => {listItem}).ToList();");
+                  writer.Write($"return results.Count > 0 && results.All(result => result.Equals(results[0])) ? results[0] : default({property.ReturnType});");
+               }
             }
-            AppendLine("remove");
-            using (Indent()) {
-               AppendLine($"this.ForEach(listItem => listItem.{eventData.Name} -= value);");
+            if (info.CanWrite) {
+               writer.Write("set");
+               using (writer.Indent()) {
+                  writer.Write($"this.ForEach(listItem => {listItem} = value);");
+               }
             }
          }
       }
