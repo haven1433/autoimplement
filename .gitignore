@@ -1,0 +1,15 @@
+
+# User-specific files
+*.suo
+*.user
+.vs/
+
+# Build results
+bin/
+obj/
+
+# nuget
+packages/
+
+# Test results
+TestResults/
