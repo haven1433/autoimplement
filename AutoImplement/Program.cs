@@ -24,12 +24,21 @@ namespace AutoImplement {
       }
 
       public static void GenerateImplementations(string assemblyName, params string[] typeNames) {
-         if (!TryGetAssembly(assemblyName, out var assembly)) return;
+         if (!TryGetAssembly(assemblyName, out var assembly)) {
+            PrintUsageInformation();
+            return;
+         }
 
          if (typeNames.Length == 0) {
             typeNames = assembly.ExportedTypes.Where(type => type.IsInterface).Select(type => type.FullName).ToArray();
          }
 
+         GenerateImplementations(assembly, typeNames);
+
+         Console.WriteLine($"Done generating implementations from {typeNames.Length} interfaces.");
+      }
+
+      private static void GenerateImplementations(Assembly assembly, string[] typeNames) {
          foreach (var typeName in typeNames) {
             if (!TryFindType(assembly, typeName, out var type)) continue;
 
@@ -37,12 +46,10 @@ namespace AutoImplement {
             var mainName = type.Name.Split('`')[0];
             if (mainName.StartsWith("I")) mainName = mainName.Substring(1); // strip leading 'I' from interface name
 
-            GenerateImplementation<StubBuilder>     (type, $"Stub{mainName}{genericInformation}.cs",      "System.Delegation");
+            GenerateImplementation<StubBuilder>(type, $"Stub{mainName}{genericInformation}.cs", "System.Delegation");
             GenerateImplementation<CompositeBuilder>(type, $"Composite{mainName}{genericInformation}.cs", "System.Linq");
             GenerateImplementation<DecoratorBuilder>(type, $"{mainName}Decorator{genericInformation}.cs");
          }
-
-         Console.WriteLine($"Done generating implementations from {typeNames.Length} interfaces.");
       }
 
       private static void PrintUsageInformation() {
@@ -70,6 +77,7 @@ namespace AutoImplement {
          var parent = Process.GetProcessById((int)parentId);
 
          if (parent.ProcessName == "explorer") {
+            Console.WriteLine("Press any key to continue...");
             Console.ReadKey();
          }
       }
@@ -80,11 +88,14 @@ namespace AutoImplement {
       /// We don't know which it is, so just try both.
       /// </summary>
       private static bool TryGetAssembly(string candidate, out Assembly result) {
-         if (TryGetAssemblyFromLongName(candidate, out result) || TryGetAssemblyFromFile(candidate, out result)) {
+         if (TryGetAssemblyFromLongName(candidate, out result)) {
             return true;
          }
 
-         PrintUsageInformation();
+         if (TryGetAssemblyFromFile(candidate, out result)) {
+            return true;
+         }
+
          return false;
       }
 
