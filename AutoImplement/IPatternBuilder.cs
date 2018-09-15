@@ -1,0 +1,33 @@
+﻿using System;
+using System.Reflection;
+
+namespace AutoImplement {
+   /// <summary>
+   /// Hidden requirement:
+   /// An implementation of IPatternBuilder is expected to have a constructor that takes
+   /// a StringWriter. The AppendBlah methods are assumed to append things to that StringWriter.
+   /// </summary>
+   public interface IPatternBuilder {
+      /// <summary>
+      /// the full class declaration, including any extended types / implemented interfaces
+      /// </summary>
+      string ClassDeclaration(Type interfaceType);
+
+      /// <summary>
+      /// If the pattern implementation has any standard members unrelated to the interface, add them here.
+      /// For exampe, your pattern may add a specific constructor or protected member.
+      /// </summary>
+      void AppendExtraMembers(Type interfaceType);
+
+      void AppendMethod(MethodInfo info, MemberMetadata metadata);
+
+      void AppendEvent(EventInfo info, MemberMetadata metadata);
+
+      void AppendProperty(PropertyInfo info, MemberMetadata metadata);
+
+      /// <summary>
+      /// the 'Item' property in C# is special: it's exposed as this[]
+      /// </summary>
+      void AppendItemProperty(PropertyInfo info, MemberMetadata metadata);
+   }
+}
