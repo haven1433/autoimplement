@@ -22,8 +22,8 @@
     <copyright>Copyright 2018</copyright>
   </metadata>
   <files>
-    <file src="AutoImplement.exe" target="" />
-    <file src="System.Delegation.dll" target="lib" />
-    <file src="System.Delegation.xml" target="lib" />
+    <file src="AutoImplement\bin\Release\AutoImplement.exe" target="" />
+    <file src="System.Delegation\bin\Release\System.Delegation.dll" target="lib" />
+    <file src="System.Delegation\bin\Release\System.Delegation.xml" target="lib" />
   </files>
 </package>
