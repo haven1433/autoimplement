@@ -12,6 +12,7 @@ namespace AutoImplement {
       public string ParameterTypes { get; }
       public string ParameterNames { get; }
       public string ParameterTypesAndNames { get; }
+      public string GenericParameters { get; } = string.Empty;
 
       public MemberMetadata(MemberInfo info) {
          DeclaringType = info.DeclaringType.CreateCsName(info.DeclaringType.Namespace);
@@ -20,6 +21,9 @@ namespace AutoImplement {
          if (info is MethodInfo methodInfo) {
             ReturnType = methodInfo.ReturnType.CreateCsName(info.DeclaringType.Namespace);
             (ParameterTypes, ParameterNames, ParameterTypesAndNames) = BuildArgumentLists(methodInfo.GetParameters());
+            if (methodInfo.IsGenericMethodDefinition) {
+               GenericParameters = "<" + methodInfo.GetGenericArguments().Select(type => type.Name).Aggregate((a, b) => $"{a}, {b}") + ">";
+            }
          } else if (info is PropertyInfo propertyInfo) {
             ReturnType = propertyInfo.PropertyType.CreateCsName(info.DeclaringType.Namespace);
             (ParameterTypes, ParameterNames, ParameterTypesAndNames) = BuildArgumentLists(propertyInfo.GetIndexParameters());

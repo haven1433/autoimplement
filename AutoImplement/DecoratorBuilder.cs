@@ -63,24 +63,25 @@ namespace AutoImplement {
          // When it does happen, hopefully the creator of the child interface wants the child to behave as the parent...
          // in which case this is the correct implementation.
          if (implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
-            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}({method.ParameterTypesAndNames})");
+            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
             using (writer.Indent()) {
                writer.Write($"{returnClause}{method.Name}({method.ParameterNames});");
             }
             return;
          }
 
-         writer.Write($"public virtual {method.ReturnType} {method.Name}({method.ParameterTypesAndNames})");
+         writer.Write($"public virtual {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
          using (writer.Indent()) {
             writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
 
-            IfHasInnerObject($"{returnClause}{innerObject}.{method.Name}({method.ParameterNames});");
+            IfHasInnerObject($"{returnClause}{innerObject}.{method.Name}{method.GenericParameters}({method.ParameterNames});");
 
             if (returnClause != string.Empty) {
                writer.Write($"return default({method.ReturnType});");
             }
          }
 
+         writer.Write(string.Empty);
          implementedMethods.Add($"{method.Name}({method.ParameterTypes})");
       }
 

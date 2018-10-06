@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace AutoImplementTests {
    public interface IEmptyInterface { }
@@ -35,5 +36,14 @@ namespace AutoImplementTests {
    public interface IHaveOutMethods {
       void Method(int inParam, out int outParam);
       string Method2(ref int p1, out double p2);
+   }
+
+   public interface IHaveGenericMethods {
+      void MethodWithGenericInput<T>(T input);
+      T MethodWithGenericOutput<T>(int input);
+      A MethodWithGenericInputAndOutput<A, B>(B input);
+      void MethodWithNestedGenericTypeInParameter<T>(IList<T> list);
+      void MethodWithGenericOutParameter<T>(out T value);
+      void MethodWithGenericRefParameter<T>(ref T value);
    }
 }

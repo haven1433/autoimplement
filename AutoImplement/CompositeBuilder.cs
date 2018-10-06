@@ -42,9 +42,9 @@ namespace AutoImplement {
          // Use an explicit implementation only if the signature has already been used
          // example: IEnumerable<T>, which extends IEnumerable
          if (!implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
-            writer.Write($"public {method.ReturnType} {method.Name}({method.ParameterTypesAndNames})");
+            writer.Write($"public {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
          } else {
-            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}({method.ParameterTypesAndNames})");
+            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
          }
 
          using (writer.Indent()) {
@@ -53,13 +53,13 @@ namespace AutoImplement {
             if (method.ReturnType == "void") {
                writer.Write("for (int i = 0; i < base.Count; i++)");
                using (writer.Indent()) {
-                  writer.Write($"base[i].{method.Name}({method.ParameterNames});");
+                  writer.Write($"base[i].{method.Name}{method.GenericParameters}({method.ParameterNames});");
                }
             } else {
                writer.Write($"var results = new System.Collections.Generic.List<{method.ReturnType}>();");
                writer.Write("for (int i = 0; i < base.Count; i++)");
                using (writer.Indent()) {
-                  writer.Write($"results.Add(base[i].{method.Name}({method.ParameterNames}));");
+                  writer.Write($"results.Add(base[i].{method.Name}{method.GenericParameters}({method.ParameterNames}));");
                }
                writer.Write("if (results.Count > 0 && results.All(result => result.Equals(results[0])))");
                using (writer.Indent()) {
@@ -69,6 +69,7 @@ namespace AutoImplement {
             }
          }
 
+         writer.Write(string.Empty);
          implementedMethods.Add($"{method.Name}({method.ParameterTypes})");
       }
 

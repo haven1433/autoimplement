@@ -36,7 +36,10 @@ namespace AutoImplement
             genericArguments = "<" + genericArgList.Aggregate((a, b) => $"{a}, {b}") + ">";
          }
 
-         var result = type.FullName ?? type.Name;                       // example: 'T' (type is a generic argument)
+         var result = type.Name;
+         if (!type.IsGenericParameter) {                                // example: 'T' (type is a generic argument)
+            result = type.Namespace + "." + result;
+         }
          result = result.Replace("&", string.Empty);                    // remove the '&' appended to ref/out parameters
          result = result.Split('`')[0] + genericArguments;              // example: List`1 -> List<T>
          if (typeList.ContainsKey(result)) result = typeList[result];   // example: System.Int32 -> int

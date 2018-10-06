@@ -61,6 +61,11 @@ namespace AutoImplement {
       /// If there is no delegate, it returns default.
       /// </remarks>
       public void AppendMethod(MethodInfo info, MemberMetadata method) {
+         if (info.IsGenericMethodDefinition) {
+            this.AppendGenericMethod(info, method);
+            return;
+         }
+
          var delegateName = GetStubName(method.ReturnType, method.ParameterTypes);
          var typesExtension = SanitizeMethodName(method.ParameterTypes);
 
@@ -80,6 +85,7 @@ namespace AutoImplement {
          }
 
          ImplementInterfaceMethod(info, localImplementationName, method);
+         writer.Write(string.Empty);
          implementedMethods.Add($"{method.Name}({method.ParameterTypes})");
       }
 
@@ -189,6 +195,57 @@ namespace AutoImplement {
                }
             }
          }
+      }
+
+      ///<example>
+      ///public delegate void MethodWithGenericInputDelegate_T<T>(T input);
+      ///private readonly Dictionary<Type[], object> MethodWithGenericInputDelegates_T = new Dictionary<Type[], object>();
+      ///public void ImplementMethodWithGenericInput<T>(MethodWithGenericInputDelegate_T<T> implementation)
+      ///{
+      ///   var key = new Type[] { typeof(T) };
+      ///   MethodWithGenericInputDelegates[key] = implementation;
+      ///}
+      ///public void MethodWithGenericInput<T>(T input)
+      ///{
+      ///   var key = new Type[] { typeof(T) };
+      ///   object implementation;
+      ///   if (MethodWithGenericInputDelegates.TryGetValue(key, out implementation))
+      ///   {
+      ///      ((MethodWithGenericInputDelegate<T>)implementation).Invoke(input);
+      ///   }
+      ///}
+      ///</example>
+      private void AppendGenericMethod(MethodInfo info, MemberMetadata method) {
+         var typesExtension = SanitizeMethodName(method.ParameterTypes);
+         var typeofList = info.GetGenericArguments().Select(type => $"typeof({type.Name})").Aggregate((a, b) => $"{a}, {b}");
+         var createKey = $"var key = new Type[] {{ {typeofList} }};";
+         var returnClause = method.ReturnType == "void" ? string.Empty : "return ";
+
+         writer.Write($"public delegate {method.ReturnType} {method.Name}Delegate_{typesExtension}{method.GenericParameters}({method.ParameterTypesAndNames});");
+         writer.Write($"private readonly Dictionary<Type[], object> {method.Name}Delegates_{typesExtension} = new Dictionary<Type[], object>();");
+         writer.Write($"public void Implement{method.Name}{method.GenericParameters}({method.Name}Delegate_{typesExtension}{method.GenericParameters} implementation)");
+         using (writer.Indent()) {
+            writer.Write(createKey);
+            writer.Write($"{method.Name}Delegates_{typesExtension}[key] = implementation;");
+         }
+         writer.Write($"public {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
+         using (writer.Indent()) {
+            writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
+            writer.Write(createKey);
+            writer.Write("object implementation;");
+            writer.Write($"if ({method.Name}Delegates_{typesExtension}.TryGetValue(key, out implementation))");
+            using (writer.Indent()) {
+               writer.Write($"{returnClause}(({method.Name}Delegate_{typesExtension}{method.GenericParameters})implementation).Invoke({method.ParameterNames});");
+            }
+            if (method.ReturnType != "void") {
+               writer.Write("else");
+               using (writer.Indent()) {
+                  writer.Write($"return default({method.ReturnType});");
+               }
+            }
+         }
+
+         writer.Write(string.Empty);
       }
 
       private string GetStubName(string returnType, string parameterTypes) {
