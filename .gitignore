@@ -8,6 +8,9 @@
 bin/
 obj/
 
+# generated files
+generatedCode/
+
 # nuget
 packages/
 *.nupkg
