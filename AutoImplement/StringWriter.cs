@@ -17,7 +17,7 @@ namespace AutoImplement {
          }
       }
 
-      public IDisposable Indent() => new IndentationScope(this);
+      public IDisposable Scope => new IndentationScope(this);
 
       public void AssignDefaultValuesToOutParameters(string owningNamespace, ParameterInfo[] parameters) {
          foreach (var p in parameters.Where(p => p.IsOut)) {

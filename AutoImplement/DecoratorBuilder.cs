@@ -64,14 +64,14 @@ namespace AutoImplement {
          // in which case this is the correct implementation.
          if (implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
             writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                writer.Write($"{returnClause}{method.Name}({method.ParameterNames});");
             }
             return;
          }
 
          writer.Write($"public virtual {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
 
             IfHasInnerObject($"{returnClause}{innerObject}.{method.Name}{method.GenericParameters}({method.ParameterNames});");
@@ -106,13 +106,13 @@ namespace AutoImplement {
       // </example>
       public void AppendEvent(EventInfo info, MemberMetadata eventData) {
          writer.Write($"public virtual event {eventData.HandlerType} {eventData.Name}");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.Write("add");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                IfHasInnerObject($"{innerObject}.{eventData.Name} += value;");
             }
             writer.Write("remove");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                IfHasInnerObject($"{innerObject}.{eventData.Name} -= value;");
             }
          }
@@ -152,17 +152,17 @@ namespace AutoImplement {
       }
 
       private void AppendPropertyCommon(PropertyInfo info, MemberMetadata property, string member) {
-         using (writer.Indent()) {
+         using (writer.Scope) {
             if (info.CanRead) {
                writer.Write("get");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   IfHasInnerObject($"return {member};");
                   writer.Write($"return default({property.ReturnType});");
                }
             }
             if (info.CanWrite) {
                writer.Write("set");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   IfHasInnerObject($"{member} = value;");
                }
             }
@@ -179,7 +179,7 @@ namespace AutoImplement {
 
       private void IfHasInnerObject(string content) {
          writer.Write($"if ({innerObject} != null)");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.Write(content);
          }
       }

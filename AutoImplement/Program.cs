@@ -159,9 +159,9 @@ namespace AutoImplement {
          writer.Write(string.Empty);
 
          writer.Write($"namespace {interfaceType.Namespace}");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.Write($"public class {builder.ClassDeclaration(interfaceType)}");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                builder.AppendExtraMembers(interfaceType);
                foreach (var member in FindAllMembers(interfaceType)) {
                   var metadata = new MemberMetadata(member);
