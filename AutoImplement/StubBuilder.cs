@@ -13,9 +13,14 @@ namespace AutoImplement {
    public class StubBuilder : IPatternBuilder {
       private readonly List<string> implementedMethods = new List<string>();
 
-      private readonly StringWriter writer;
+      private readonly CSharpSourceWriter writer;
 
-      public StubBuilder(StringWriter writer) => this.writer = writer;
+      public StubBuilder(CSharpSourceWriter writer) => this.writer = writer;
+
+      public string GetDesiredOutputFileName(Type interfaceType) {
+         var (mainName, genericInformation) = interfaceType.GetFileNameParts();
+         return $"Stub{mainName}{genericInformation}.cs";
+      }
 
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
@@ -221,21 +226,25 @@ namespace AutoImplement {
          var createKey = $"var key = new Type[] {{ {typeofList} }};";
          var returnClause = method.ReturnType == "void" ? string.Empty : "return ";
 
-         writer.Write($"public delegate {method.ReturnType} {method.Name}Delegate_{typesExtension}{method.GenericParameters}({method.ParameterTypesAndNames});");
-         writer.Write($"private readonly Dictionary<Type[], object> {method.Name}Delegates_{typesExtension} = new Dictionary<Type[], object>();");
-         writer.Write($"public void Implement{method.Name}{method.GenericParameters}({method.Name}Delegate_{typesExtension}{method.GenericParameters} implementation)");
+         var delegateName = $"{method.Name}Delegate_{typesExtension}{method.GenericParameters}";
+         var dictionary = $"{method.Name}Delegates_{typesExtension}";
+         var methodName = $"{method.Name}{method.GenericParameters}";
+
+         writer.Write($"public delegate {method.ReturnType} {delegateName}({method.ParameterTypesAndNames});");
+         writer.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>();");
+         writer.Write($"public void Implement{methodName}({delegateName} implementation)");
          using (writer.Scope) {
             writer.Write(createKey);
-            writer.Write($"{method.Name}Delegates_{typesExtension}[key] = implementation;");
+            writer.Write($"{dictionary}[key] = implementation;");
          }
-         writer.Write($"public {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
+         writer.Write($"public {method.ReturnType} {methodName}({method.ParameterTypesAndNames})");
          using (writer.Scope) {
             writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
             writer.Write(createKey);
             writer.Write("object implementation;");
-            writer.Write($"if ({method.Name}Delegates_{typesExtension}.TryGetValue(key, out implementation))");
+            writer.Write($"if ({dictionary}.TryGetValue(key, out implementation))");
             using (writer.Scope) {
-               writer.Write($"{returnClause}(({method.Name}Delegate_{typesExtension}{method.GenericParameters})implementation).Invoke({method.ParameterNames});");
+               writer.Write($"{returnClause}(({delegateName})implementation).Invoke({method.ParameterNames});");
             }
             if (method.ReturnType != "void") {
                writer.Write("else");

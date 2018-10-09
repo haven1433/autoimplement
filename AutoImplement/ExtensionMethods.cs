@@ -50,15 +50,23 @@ namespace AutoImplement
          return result;
       }
 
-      public static (string name, string genericInfo) ExtractImplementingNameParts(this string originalName) {
+      public static (string name, string genericClassInfo) ExtractImplementingNameParts(this string originalName) {
          var genericStart = originalName.IndexOf("<");
          var genericPart = genericStart == -1 ? string.Empty : originalName.Substring(genericStart);
 
          // most interfaces start with a leading 'I' that we don't want to be part of the child class name.
-         int skipFirstCharacter = originalName.StartsWith("I") ? 1 : 0;
+         int skipFirstCharacter = originalName.StartsWith("I") && char.IsUpper(originalName[1]) ? 1 : 0;
          var nameLength = originalName.Length - skipFirstCharacter - genericPart.Length;
          var name = originalName.Substring(skipFirstCharacter, nameLength);
          return (name, genericPart);
+      }
+
+      public static (string name, string genericFileInfo) GetFileNameParts(this Type type) {
+         var genericInformation = type.Name.Contains("`") ? "`" + type.Name.Split('`')[1] : string.Empty;
+         var mainName = type.Name.Split('`')[0];
+         if (mainName.StartsWith("I") && char.IsUpper(mainName[1])) mainName = mainName.Substring(1); // strip leading 'I' from interface name
+
+         return (mainName, genericInformation);
       }
    }
 }

@@ -12,9 +12,14 @@ namespace AutoImplement {
 
       private string innerObject;
 
-      private readonly StringWriter writer;
+      private readonly CSharpSourceWriter writer;
 
-      public DecoratorBuilder(StringWriter writer) => this.writer = writer;
+      public DecoratorBuilder(CSharpSourceWriter writer) => this.writer = writer;
+
+      public string GetDesiredOutputFileName(Type interfaceType) {
+         var (mainName, genericInformation) = interfaceType.GetFileNameParts();
+         return $"{mainName}Decorator{genericInformation}.cs";
+      }
 
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);

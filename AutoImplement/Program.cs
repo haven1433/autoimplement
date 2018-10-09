@@ -46,9 +46,9 @@ namespace AutoImplement {
             var mainName = type.Name.Split('`')[0];
             if (mainName.StartsWith("I")) mainName = mainName.Substring(1); // strip leading 'I' from interface name
 
-            GenerateImplementation<StubBuilder>(type, $"Stub{mainName}{genericInformation}.cs", "System,System.Collections.Generic,System.Delegation");
-            GenerateImplementation<CompositeBuilder>(type, $"Composite{mainName}{genericInformation}.cs", "System.Linq");
-            GenerateImplementation<DecoratorBuilder>(type, $"{mainName}Decorator{genericInformation}.cs");
+            GenerateImplementation<StubBuilder>     (type, "System,System.Collections.Generic,System.Delegation");
+            GenerateImplementation<CompositeBuilder>(type, "System.Linq");
+            GenerateImplementation<DecoratorBuilder>(type);
          }
       }
 
@@ -145,18 +145,12 @@ namespace AutoImplement {
       /// Creates a Builder of the given generic type to implement the given interface.
       /// Output is placed in the given fileName.
       /// </summary>
-      private static void GenerateImplementation<TPatternBuilder>(Type interfaceType, string fileName, string additionalUsings = null)
+      private static void GenerateImplementation<TPatternBuilder>(Type interfaceType, string additionalUsings = null)
       where TPatternBuilder : IPatternBuilder {
-         var writer = new StringWriter();
+         var writer = new CSharpSourceWriter(additionalUsings, numberOfSpacesToIndent: 4);
          var builder = (TPatternBuilder)Activator.CreateInstance(typeof(TPatternBuilder), writer);
+         var fileName = builder.GetDesiredOutputFileName(interfaceType);
          Console.WriteLine($"Generating {fileName} ...");
-         writer.Write($"// this file was created by AutoImplement");
-         if (!string.IsNullOrEmpty(additionalUsings)) {
-            foreach (var additionalUsing in additionalUsings.Split(',')) {
-               writer.Write($"using {additionalUsing};");
-            }
-         }
-         writer.Write(string.Empty);
 
          writer.Write($"namespace {interfaceType.Namespace}");
          using (writer.Scope) {

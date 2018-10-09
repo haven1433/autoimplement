@@ -7,9 +7,14 @@ namespace AutoImplement {
    public class CompositeBuilder : IPatternBuilder {
       private readonly List<string> implementedMethods = new List<string>();
 
-      private readonly StringWriter writer;
+      private readonly CSharpSourceWriter writer;
 
-      public CompositeBuilder(StringWriter writer) => this.writer = writer;
+      public CompositeBuilder(CSharpSourceWriter writer) => this.writer = writer;
+
+      public string GetDesiredOutputFileName(Type interfaceType) {
+         var (mainName, genericInformation) = interfaceType.GetFileNameParts();
+         return $"Composite{mainName}{genericInformation}.cs";
+      }
 
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
