@@ -59,7 +59,7 @@ namespace AutoImplement
       }
 
       /// <summary>
-      /// Most interfaces start with a leading 'I' that we don't want to be part of teh child class name.
+      /// Most interfaces start with a leading 'I' that we don't want to be part of the child class name.
       /// This method strips out the leading 'I' if it exists.
       /// </summary>
       public static string StripLeadingInterfaceEncoding(this string name) {
