@@ -17,13 +17,13 @@ namespace AutoImplement {
       public DecoratorBuilder(CSharpSourceWriter writer) => this.writer = writer;
 
       public string GetDesiredOutputFileName(Type interfaceType) {
-         var (mainName, genericInformation) = interfaceType.GetFileNameParts();
+         var (mainName, genericInformation) = interfaceType.Name.ExtractImplementationNameParts("`");
          return $"{mainName}Decorator{genericInformation}.cs";
       }
 
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
-         var (basename, genericInfo) = interfaceName.ExtractImplementingNameParts();
+         var (basename, genericInfo) = interfaceName.ExtractImplementationNameParts("<");
 
          return $"{basename}Decorator{genericInfo} : {interfaceName}";
       }
@@ -175,10 +175,7 @@ namespace AutoImplement {
       }
 
       private string GetInnerObjectName(Type type) {
-         var (name, genericInfo) = type.CreateCsName(type.Namespace).ExtractImplementingNameParts();
-
-         // most interfaces start with a leading 'I' that we want to strip off
-         if (name.StartsWith("I")) name = name.Substring(1);
+         var (name, _) = type.CreateCsName(type.Namespace).ExtractImplementationNameParts("<");
          return $"Inner{name}";
       }
 

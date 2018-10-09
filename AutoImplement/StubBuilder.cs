@@ -15,16 +15,22 @@ namespace AutoImplement {
 
       private readonly CSharpSourceWriter writer;
 
-      public StubBuilder(CSharpSourceWriter writer) => this.writer = writer;
+      public StubBuilder(CSharpSourceWriter writer) {
+         this.writer = writer;
+         writer.WriteUsings(
+            "System",                     // Action, Func, Type
+            "System.Collections.Generic", // Dictionary
+            "System.Delegation");         // PropertyImplementation, EventImplementation
+      }
 
       public string GetDesiredOutputFileName(Type interfaceType) {
-         var (mainName, genericInformation) = interfaceType.GetFileNameParts();
+         var (mainName, genericInformation) = interfaceType.Name.ExtractImplementationNameParts("`");
          return $"Stub{mainName}{genericInformation}.cs";
       }
 
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
-         var (basename, genericInfo) = interfaceName.ExtractImplementingNameParts();
+         var (basename, genericInfo) = interfaceName.ExtractImplementationNameParts("<");
 
          return $"Stub{basename}{genericInfo} : {interfaceName}";
       }
@@ -101,11 +107,11 @@ namespace AutoImplement {
       // {
       //    add
       //    {
-      //       ValueChanged.add(new System.EventHandler<EventArgs>(value));
+      //       ValueChanged.add(new EventHandler<EventArgs>(value));
       //    }
       //    remove
       //    {
-      //       ValueChanged.remove(new System.EventHandler<EventArgs>(value));
+      //       ValueChanged.remove(new EventHandler<EventArgs>(value));
       //    }
       // }
       /// </example>
@@ -128,11 +134,11 @@ namespace AutoImplement {
          using (writer.Scope) {
             writer.Write("add");
             using (writer.Scope) {
-               writer.Write($"{info.Name}.add(new System.EventHandler<{eventData.HandlerArgsType}>(value));");
+               writer.Write($"{info.Name}.add(new EventHandler<{eventData.HandlerArgsType}>(value));");
             }
             writer.Write("remove");
             using (writer.Scope) {
-               writer.Write($"{info.Name}.remove(new System.EventHandler<{eventData.HandlerArgsType}>(value));");
+               writer.Write($"{info.Name}.remove(new EventHandler<{eventData.HandlerArgsType}>(value));");
             }
          }
       }
@@ -178,11 +184,11 @@ namespace AutoImplement {
       /// </remarks>
       public void AppendItemProperty(PropertyInfo info, MemberMetadata property) {
          if (info.CanRead) {
-            writer.Write($"public System.Func<{property.ParameterTypes}, {property.ReturnType}> get_Item = ({property.ParameterNames}) => default({property.ReturnType});" + Environment.NewLine);
+            writer.Write($"public Func<{property.ParameterTypes}, {property.ReturnType}> get_Item = ({property.ParameterNames}) => default({property.ReturnType});" + Environment.NewLine);
          }
 
          if (info.CanWrite) {
-            writer.Write($"public System.Action<{property.ParameterTypes}, {property.ReturnType}> set_Item = ({property.ParameterNames}, value) => {{}};" + Environment.NewLine);
+            writer.Write($"public Action<{property.ParameterTypes}, {property.ReturnType}> set_Item = ({property.ParameterNames}, value) => {{}};" + Environment.NewLine);
          }
 
          writer.Write($"{property.ReturnType} {property.DeclaringType}.this[{property.ParameterTypesAndNames}]");
@@ -259,11 +265,11 @@ namespace AutoImplement {
 
       private string GetStubName(string returnType, string parameterTypes) {
          if (returnType == "void") {
-            var delegateName = "System.Action";
+            var delegateName = "Action";
             if (parameterTypes != string.Empty) delegateName += $"<{parameterTypes}>";
             return delegateName;
          } else {
-            var delegateName = "System.Func";
+            var delegateName = "Func";
             delegateName += parameterTypes == string.Empty ? $"<{returnType}>" : $"<{parameterTypes}, {returnType}>";
             return delegateName;
          }

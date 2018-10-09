@@ -15,7 +15,7 @@ namespace AutoImplement {
       /// The number of spaces used for indenting in the source file.
       /// If this number is not positive, a single tab is used for indentation.
       /// </param>
-      public CSharpSourceWriter(string usings, int numberOfSpacesToIndent = 0) {
+      public CSharpSourceWriter(int numberOfSpacesToIndent = 0) {
          if (numberOfSpacesToIndent > 0) {
             indentation = new string(' ', numberOfSpacesToIndent);
          } else {
@@ -23,10 +23,11 @@ namespace AutoImplement {
          }
 
          Write($"// this file was created by AutoImplement");
-         if (!string.IsNullOrEmpty(usings)) {
-            foreach (var additionalUsing in usings.Split(',')) {
-               Write($"using {additionalUsing};");
-            }
+      }
+
+      public void WriteUsings(params string[] usings) {
+         foreach (var item in usings) {
+            Write($"using {item};");
          }
          Write(string.Empty);
       }

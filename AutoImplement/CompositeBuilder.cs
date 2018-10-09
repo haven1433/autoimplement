@@ -9,16 +9,19 @@ namespace AutoImplement {
 
       private readonly CSharpSourceWriter writer;
 
-      public CompositeBuilder(CSharpSourceWriter writer) => this.writer = writer;
+      public CompositeBuilder(CSharpSourceWriter writer) {
+         this.writer = writer;
+         writer.WriteUsings("System.Linq");
+      }
 
       public string GetDesiredOutputFileName(Type interfaceType) {
-         var (mainName, genericInformation) = interfaceType.GetFileNameParts();
+         var (mainName, genericInformation) = interfaceType.Name.ExtractImplementationNameParts("`");
          return $"Composite{mainName}{genericInformation}.cs";
       }
 
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
-         var (basename, genericInfo) = interfaceName.ExtractImplementingNameParts();
+         var (basename, genericInfo) = interfaceName.ExtractImplementationNameParts("<");
 
          return $"Composite{basename}{genericInfo} : System.Collections.Generic.List<{interfaceName}>, {interfaceName}";
       }
