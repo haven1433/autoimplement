@@ -397,15 +397,3 @@ public interface IDoNotWork {
 
 This is valid C#, and the compiler can tell them apart. But AutoImplement will try to make a property named Method (for the normal method) and a method named Method (for the generic version). C# cannot have a property and a method with the same name.
 
-## Generic Constraints
-
-AutoImplement currently ignores all generic constraints, such as:
-
-```
-public interface IUseConstrainst<T> where T : new() {
-   T CreateAThing();
-}
-```
-
-AutoImplement will create a implmentations, but will ignore the constraint. So the generated implementations will not compile without being edited.
-
