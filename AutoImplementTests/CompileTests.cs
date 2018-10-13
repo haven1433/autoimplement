@@ -82,6 +82,28 @@ namespace AutoImplementTests
          AssertCompile("StubHaveGenericMethods.cs", "CompositeHaveGenericMethods.cs", "HaveGenericMethodsDecorator.cs");
       }
 
+      [Fact]
+      public void CanGenerateFromInGenericType() => AssertCompile(typeof(IInputInterface<>));
+
+      [Fact]
+      public void CanGenerateFromOutGenericType() => AssertCompile(typeof(IOutputInterface<>));
+
+      [Fact]
+      public void CanGenerateFromMultipleGenericConstraints() => AssertCompile(typeof(IInterfaceWithMultipleConstraints<>));
+
+      [Fact]
+      public void CanGenerateFromMethodConstraints() => AssertCompile(typeof(IInterfaceWithTypeConstrainedMethods));
+
+      private static void AssertCompile(Type interfaceType) {
+         Program.GenerateImplementations(ThisAssembly, interfaceType.Name);
+
+         var writer = new CSharpSourceWriter();
+         AssertCompile(
+            new StubBuilder(writer).GetDesiredOutputFileName(interfaceType),
+            new CompositeBuilder(writer).GetDesiredOutputFileName(interfaceType),
+            new DecoratorBuilder(writer).GetDesiredOutputFileName(interfaceType));
+      }
+
       private static void AssertCompile(params string[] contents) {
          var provider = new CSharpCodeProvider();
          var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(asm => !asm.IsDynamic).Select(asm => asm.Location);

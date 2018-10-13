@@ -31,8 +31,9 @@ namespace AutoImplement {
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
          var (basename, genericInfo) = interfaceName.ExtractImplementationNameParts("<");
+         var constraints = MemberMetadata.GetGenericParameterConstraints(interfaceType.GetGenericArguments(), interfaceType.Namespace);
 
-         return $"Stub{basename}{genericInfo} : {interfaceName}";
+         return $"Stub{basename}{genericInfo} : {interfaceName}{constraints}";
       }
 
       public void AppendExtraMembers(Type interfaceType) { }
@@ -236,14 +237,14 @@ namespace AutoImplement {
          var dictionary = $"{method.Name}Delegates_{typesExtension}";
          var methodName = $"{method.Name}{method.GenericParameters}";
 
-         writer.Write($"public delegate {method.ReturnType} {delegateName}({method.ParameterTypesAndNames});");
+         writer.Write($"public delegate {method.ReturnType} {delegateName}({method.ParameterTypesAndNames}){method.GenericParameterConstraints};");
          writer.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>();");
-         writer.Write($"public void Implement{methodName}({delegateName} implementation)");
+         writer.Write($"public void Implement{methodName}({delegateName} implementation){method.GenericParameterConstraints}");
          using (writer.Scope) {
             writer.Write(createKey);
             writer.Write($"{dictionary}[key] = implementation;");
          }
-         writer.Write($"public {method.ReturnType} {methodName}({method.ParameterTypesAndNames})");
+         writer.Write($"public {method.ReturnType} {methodName}({method.ParameterTypesAndNames}){method.GenericParameterConstraints}");
          using (writer.Scope) {
             writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
             writer.Write(createKey);
