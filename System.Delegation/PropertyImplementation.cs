@@ -37,7 +37,7 @@ namespace System.Delegation
       }
 
       /// <summary>
-      /// Assigning a PropertyImplementation to a normal value will use any custom get delegate that you've setup.
+      /// Assigning a normal value from a PropertyImplementation will use any custom get delegate that you've setup.
       /// If you haven't setup a custom get delegate, then the PropertyImplementation's value is used.
       /// </summary>
       /// <example>
