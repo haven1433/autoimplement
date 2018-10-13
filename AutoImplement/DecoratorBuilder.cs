@@ -12,13 +12,18 @@ namespace AutoImplement {
 
       private string innerObject;
 
-      private readonly StringWriter writer;
+      private readonly CSharpSourceWriter writer;
 
-      public DecoratorBuilder(StringWriter writer) => this.writer = writer;
+      public DecoratorBuilder(CSharpSourceWriter writer) => this.writer = writer;
+
+      public string GetDesiredOutputFileName(Type interfaceType) {
+         var (mainName, genericInformation) = interfaceType.Name.ExtractImplementationNameParts("`");
+         return $"{mainName}Decorator{genericInformation}.cs";
+      }
 
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
-         var (basename, genericInfo) = interfaceName.ExtractImplementingNameParts();
+         var (basename, genericInfo) = interfaceName.ExtractImplementationNameParts("<");
 
          return $"{basename}Decorator{genericInfo} : {interfaceName}";
       }
@@ -63,24 +68,25 @@ namespace AutoImplement {
          // When it does happen, hopefully the creator of the child interface wants the child to behave as the parent...
          // in which case this is the correct implementation.
          if (implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
-            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}({method.ParameterTypesAndNames})");
-            using (writer.Indent()) {
+            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
+            using (writer.Scope) {
                writer.Write($"{returnClause}{method.Name}({method.ParameterNames});");
             }
             return;
          }
 
-         writer.Write($"public virtual {method.ReturnType} {method.Name}({method.ParameterTypesAndNames})");
-         using (writer.Indent()) {
+         writer.Write($"public virtual {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
+         using (writer.Scope) {
             writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
 
-            IfHasInnerObject($"{returnClause}{innerObject}.{method.Name}({method.ParameterNames});");
+            IfHasInnerObject($"{returnClause}{innerObject}.{method.Name}{method.GenericParameters}({method.ParameterNames});");
 
             if (returnClause != string.Empty) {
                writer.Write($"return default({method.ReturnType});");
             }
          }
 
+         writer.Write(string.Empty);
          implementedMethods.Add($"{method.Name}({method.ParameterTypes})");
       }
 
@@ -105,13 +111,13 @@ namespace AutoImplement {
       // </example>
       public void AppendEvent(EventInfo info, MemberMetadata eventData) {
          writer.Write($"public virtual event {eventData.HandlerType} {eventData.Name}");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.Write("add");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                IfHasInnerObject($"{innerObject}.{eventData.Name} += value;");
             }
             writer.Write("remove");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                IfHasInnerObject($"{innerObject}.{eventData.Name} -= value;");
             }
          }
@@ -151,17 +157,17 @@ namespace AutoImplement {
       }
 
       private void AppendPropertyCommon(PropertyInfo info, MemberMetadata property, string member) {
-         using (writer.Indent()) {
+         using (writer.Scope) {
             if (info.CanRead) {
                writer.Write("get");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   IfHasInnerObject($"return {member};");
                   writer.Write($"return default({property.ReturnType});");
                }
             }
             if (info.CanWrite) {
                writer.Write("set");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   IfHasInnerObject($"{member} = value;");
                }
             }
@@ -169,16 +175,13 @@ namespace AutoImplement {
       }
 
       private string GetInnerObjectName(Type type) {
-         var (name, genericInfo) = type.CreateCsName(type.Namespace).ExtractImplementingNameParts();
-
-         // most interfaces start with a leading 'I' that we want to strip off
-         if (name.StartsWith("I")) name = name.Substring(1);
+         var (name, _) = type.CreateCsName(type.Namespace).ExtractImplementationNameParts("<");
          return $"Inner{name}";
       }
 
       private void IfHasInnerObject(string content) {
          writer.Write($"if ({innerObject} != null)");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.Write(content);
          }
       }

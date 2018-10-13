@@ -76,6 +76,12 @@ namespace AutoImplementTests
          AssertCompile("StubHaveOutMethods.cs", "CompositeHaveOutMethods.cs", "HaveOutMethodsDecorator.cs");
       }
 
+      [Fact]
+      public void CanMakeTypeWithGenericMethods() {
+         Program.GenerateImplementations(ThisAssembly, nameof(IHaveGenericMethods));
+         AssertCompile("StubHaveGenericMethods.cs", "CompositeHaveGenericMethods.cs", "HaveGenericMethodsDecorator.cs");
+      }
+
       private static void AssertCompile(params string[] contents) {
          var provider = new CSharpCodeProvider();
          var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(asm => !asm.IsDynamic).Select(asm => asm.Location);

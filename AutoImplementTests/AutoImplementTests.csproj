@@ -58,7 +58,7 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>SharedAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="StubHasCustomEvent.cs" />
+    <Compile Include="generatedCode\StubNotifyPropertyChanged.cs" />
     <Compile Include="CompileTests.cs" />
     <Compile Include="FunctionalTests.cs" />
     <Compile Include="TestInterfaces.cs" />
@@ -92,4 +92,12 @@
     <Error Condition="!Exists('..\packages\xunit.runner.visualstudio.2.4.0\build\net20\xunit.runner.visualstudio.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\xunit.runner.visualstudio.2.4.0\build\net20\xunit.runner.visualstudio.props'))" />
   </Target>
   <Import Project="..\packages\xunit.core.2.4.0\build\xunit.core.targets" Condition="Exists('..\packages\xunit.core.2.4.0\build\xunit.core.targets')" />
+  <PropertyGroup>
+    <PreBuildEvent>$(SolutionDir)AutoImplement\$(OutDir)AutoImplement "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" INotifyPropertyChanged
+if not exist $(ProjectDir)generatedCode mkdir $(ProjectDir)generatedCode
+move /Y StubNotifyPropertyChanged.cs $(ProjectDir)generatedCode
+del CompositeNotifyPropertyChanged.cs
+del NotifyPropertyChangedDecorator.cs
+</PreBuildEvent>
+  </PropertyGroup>
 </Project>

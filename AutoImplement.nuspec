@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>HavenSoft.AutoImplement</id>
+    <version>1.0.1</version>
+    <authors>Benjamin Popp</authors>
+    <owners>bpopp</owners>
+    <licenseUrl>https://github.com/haven1433/autoimplement/blob/master/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <title>
+      AutoImplement
+    </title>
+    <description>
+      Help .net developers to use good design patterns by reducing the amount
+      of code they need to write in order to leverage those design patterns.
+    </description>
+    <summary>
+      Provide automatic implementations for Stubs, Decorators, and Composites.
+    </summary>
+    <releaseNotes>Intitial Release</releaseNotes>
+    <projectUrl>https://github.com/haven1433/autoimplement</projectUrl>
+    <copyright>Copyright 2018</copyright>
+  </metadata>
+  <files>
+    <file src="AutoImplement\bin\Release\AutoImplement.exe" target="" />
+    <file src="System.Delegation\bin\Release\System.Delegation.dll" target="lib" />
+    <file src="System.Delegation\bin\Release\System.Delegation.xml" target="lib" />
+  </files>
+</package>

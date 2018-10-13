@@ -87,7 +87,7 @@ One possible use of `ICommand` is to provide an implementation for a `Button`. W
 
 Overall, this is all very well designed. However, if your application needs many commands, you'll need to create a new implementation of `ICommand` for every command you need. This can cause an explosion of types in your assembly, or worse, it can cause extremely complex dependency scenarios if several of your commands use the same data.
 
-At some point, you decide to make a reusabe Command, one that accepts delegates in the constructor or as properties, and then calls those delegates as implementations for `CanExecute` and `Execute`. It probably also has a method called `RaiseCanExecuteChanged` to allow the owner of the object to raise the event when needed. Maybe you name this class `DelegateCommand` or `RelayCommand`. Searching the internet will give you exactly these names, along with implementations of other people who felt this was useful enough to share.
+At some point, you decide to make a reusabe Command, one that accepts delegates in the constructor or as properties, and then calls those delegates as implementations for `CanExecute` and `Execute`. It probably also has a method called `RaiseCanExecuteChanged` to allow the owner of the object to raise the event when needed. Maybe you name this class `DelegateCommand` or `RelayCommand`. Searching the internet will give you exactly these names, along with implementations from other people who felt this was useful enough to share.
 
 Congratulations! You've just created a Stub. `IDisposable` and `IComparer<>` are other common .Net interfaces where developers commonly want a Stub in real code. You likely have small interfaces of your own, or small interfaces in common frameworks or tools that you use, and having automatic Stubs for these can help keep related code close together.
 
@@ -153,7 +153,7 @@ This creates a method with a special name that can only be accessed by casting t
 
 Throughout the rest of this section, we'll share the implementation details for the Stubs various types of members. In each case, calling the interface members just forwards to the Stub's members.
 
-### Methods are replaced with Delegate Properties
+### Most methods are replaced with Delegate Properties
 
 Consider the `IDisposable` interface. If you made a stub of it, the `Dispose` member in the `StubDisposable` type would be a public property of type `System.Action`. This lets you 'call the method' with the usual syntax, but it also lets you use get and set operations to change what the method does.
 
@@ -169,6 +169,38 @@ public interface IMaxFinder {
 the first delegate property of `StubMaxFinder` would be name `Max`, while the second would be named `Max_double_double`.
 
 .Net provides the `Action<>` and `Func<>` delegate types, and AutoImplement uses those where possible. However, if a method has `out` or `ref` parameters, AutoImplement must create a custom delegate for the method. If this is the case, then the custom delegate type will be named based on the method name and the parameter types, ignoring the out/ref modifiers since you cannot create two methods with the same signature with only the modifiers changed. For example, a method like `bool TryThing(string input, out IDisposable result)` in an interface would result in a delegate `public bool TryThingDelegate_string_System_IDisposable(string input, out IDisposable result)`. The delegate would be placed inside the Stub class and used by a property named `TryThing_string_System_IDisposable`. The name of this delegate will almost never be important, but it's there if you need to cast to it. More likey, you'll only need to know the name of the property, which always has the parameters types appended in the case of methods with `ref` or `out` parameters.
+
+### Generic Methods are still methods, and are given a helper method to set implementations.
+
+Generic methods have to be handled differently, because C# doesn't allow generic properties. So instead of implementing using a public property for the changeable implementation and an explicit interface implementation to satisfy the interface, AutoImplement instead just uses a regular implementation of the interface and then adds an additional method that allows you to edit the implementation.
+
+Consider the following interface for storing values in a database, file system, or network:
+
+```
+public interface IValueProvider {
+   T GetValue<T>(string key);
+   void SetValue<T>(string key, T value);
+}
+```
+
+You could use the stub as follows:
+
+```
+var stub = new StubValueProvider();
+stub.ImplementGet<int>(key => new Random().Next(100));
+stub.ImplementGet<string>(key => key);
+stub.ImplementSet<string>((key, value) => Console.WriteLine($"Tried to store {value} at {key}.");
+```
+
+This allows you to use specific implementations for any generic arguments. However, note that you cannot have a single implementation that applies to all generic arguments. There is no way to do that with lambda expressions. Instead, you can extend AutoImplement's decorator implementation to provide the desired method, then wrap the stub with the custom decorator.
+
+```
+var stub = new StubValueProvider();
+// setup methods on the stub
+var decorator = new MyValueProviderDecorator(stub);
+```
+
+This provides the extra flexibility of letting you implement as many members on the decorator as you wish, or splitting the implementation between multiple decorators and nesting them.
 
 ### Properties are replaced with Fields of type PropertyImplementation
 
@@ -348,24 +380,32 @@ It's more verbose than extra operations in the Composite type, but the simplific
 
 AutoImplement works well with simple interfaces, but some more complex scenarios can make it difficult to create clean ways for it to work. In order to keep AutoImplement simple, there are some cases that it intentionally does not handle, which will likely lead to it generating code that will not compile. These are briefly listed below.
 
-## Non-Generic interfaces with Generic Methods
+## Default parameter values
 
-AutoImplement handles the following fine:
+Default parameters are completely ignored by the AutoImplementation. They will still work correctly when calling the methods directly on the interface, but will not be present in implementations.
+
+## An interface with a generic method and non-generic method that share a name
+
+The following interface confuses AutoImplement:
 
 ```
-public interface IEquatable<T> {
-  bool Equals(T other);
+public interface IDoNotWork {
+   void Method<T>(T input);
+   void Method(int a, int b);
 }
 ```
 
-but AutoImplement cannot handle this:
+This is valid C#, and the compiler can tell them apart. But AutoImplement will try to make a property named Method (for the normal method) and a method named Method (for the generic version). C# cannot have a property and a method with the same name.
+
+## Generic Constraints
+
+AutoImplement currently ignores all generic constraints, such as:
 
 ```
-public interface IGeneralComparer {
-  int Compare<T>(T a, T b);
+public interface IUseConstrainst<T> where T : new() {
+   T CreateAThing();
 }
 ```
 
-Having a generic interface is fine. But having a generic method won't work. This is because Stubs try to implement methods by exposing delegates, and generic lambdas don't exist in C#. This could potentially work by automatically creating a small inner-interface and requiring an implementation of that interface to be passed in instead of a delegate, but now the Stub fails at being simple.
+AutoImplement will create a implmentations, but will ignore the constraint. So the generated implementations will not compile without being edited.
 
-Decorators and Composites may be used, though they may need some hand-editing to the generated code.

@@ -7,13 +7,21 @@ namespace AutoImplement {
    public class CompositeBuilder : IPatternBuilder {
       private readonly List<string> implementedMethods = new List<string>();
 
-      private readonly StringWriter writer;
+      private readonly CSharpSourceWriter writer;
 
-      public CompositeBuilder(StringWriter writer) => this.writer = writer;
+      public CompositeBuilder(CSharpSourceWriter writer) {
+         this.writer = writer;
+         writer.WriteUsings("System.Linq");
+      }
+
+      public string GetDesiredOutputFileName(Type interfaceType) {
+         var (mainName, genericInformation) = interfaceType.Name.ExtractImplementationNameParts("`");
+         return $"Composite{mainName}{genericInformation}.cs";
+      }
 
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
-         var (basename, genericInfo) = interfaceName.ExtractImplementingNameParts();
+         var (basename, genericInfo) = interfaceName.ExtractImplementationNameParts("<");
 
          return $"Composite{basename}{genericInfo} : System.Collections.Generic.List<{interfaceName}>, {interfaceName}";
       }
@@ -42,33 +50,34 @@ namespace AutoImplement {
          // Use an explicit implementation only if the signature has already been used
          // example: IEnumerable<T>, which extends IEnumerable
          if (!implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
-            writer.Write($"public {method.ReturnType} {method.Name}({method.ParameterTypesAndNames})");
+            writer.Write($"public {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
          } else {
-            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}({method.ParameterTypesAndNames})");
+            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
          }
 
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
 
             if (method.ReturnType == "void") {
                writer.Write("for (int i = 0; i < base.Count; i++)");
-               using (writer.Indent()) {
-                  writer.Write($"base[i].{method.Name}({method.ParameterNames});");
+               using (writer.Scope) {
+                  writer.Write($"base[i].{method.Name}{method.GenericParameters}({method.ParameterNames});");
                }
             } else {
                writer.Write($"var results = new System.Collections.Generic.List<{method.ReturnType}>();");
                writer.Write("for (int i = 0; i < base.Count; i++)");
-               using (writer.Indent()) {
-                  writer.Write($"results.Add(base[i].{method.Name}({method.ParameterNames}));");
+               using (writer.Scope) {
+                  writer.Write($"results.Add(base[i].{method.Name}{method.GenericParameters}({method.ParameterNames}));");
                }
                writer.Write("if (results.Count > 0 && results.All(result => result.Equals(results[0])))");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   writer.Write("return results[0];");
                }
                writer.Write($"return default({method.ReturnType});");
             }
          }
 
+         writer.Write(string.Empty);
          implementedMethods.Add($"{method.Name}({method.ParameterTypes})");
       }
 
@@ -91,13 +100,13 @@ namespace AutoImplement {
       /// </remarks>
       public void AppendEvent(EventInfo info, MemberMetadata eventData) {
          writer.Write($"public event {eventData.HandlerType} {eventData.Name}");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.Write("add");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                writer.Write($"this.ForEach(listItem => listItem.{eventData.Name} += value);");
             }
             writer.Write("remove");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                writer.Write($"this.ForEach(listItem => listItem.{eventData.Name} -= value);");
             }
          }
@@ -137,17 +146,17 @@ namespace AutoImplement {
       }
 
       private void AppendPropertyCommon(PropertyInfo info, MemberMetadata property, string listItem) {
-         using (writer.Indent()) {
+         using (writer.Scope) {
             if (info.CanRead) {
                writer.Write("get");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   writer.Write($"var results = this.Select<{property.DeclaringType}, {property.ReturnType}>(listItem => {listItem}).ToList();");
                   writer.Write($"return results.Count > 0 && results.All(result => result.Equals(results[0])) ? results[0] : default({property.ReturnType});");
                }
             }
             if (info.CanWrite) {
                writer.Write("set");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   writer.Write($"this.ForEach(listItem => {listItem} = value);");
                }
             }

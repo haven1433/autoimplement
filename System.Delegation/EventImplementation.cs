@@ -1,6 +1,10 @@
 ﻿using System.Collections.Generic;
 
 namespace System.Delegation {
+   /// <summary>
+   /// EventImplementation can look like an event to the user, but allows you to add custom delegates for add/remove.
+   /// It also keeps track of the added handlers in a list, so that you can query them as needed.
+   /// </summary>
    public class EventImplementation<TEventArgs> {
       public readonly List<EventHandler<TEventArgs>> handlers = new List<EventHandler<TEventArgs>>();
 

@@ -9,6 +9,11 @@ namespace AutoImplement {
    /// </summary>
    public interface IPatternBuilder {
       /// <summary>
+      /// the name of the file, including any generic modifiers after the type and the file extension.
+      /// </summary>
+      string GetDesiredOutputFileName(Type interfaceType);
+
+      /// <summary>
       /// the full class declaration, including any extended types / implemented interfaces
       /// </summary>
       string ClassDeclaration(Type interfaceType);

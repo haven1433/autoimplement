@@ -42,13 +42,9 @@ namespace AutoImplement {
          foreach (var typeName in typeNames) {
             if (!TryFindType(assembly, typeName, out var type)) continue;
 
-            var genericInformation = type.Name.Contains("`") ? "`" + type.Name.Split('`')[1] : string.Empty;
-            var mainName = type.Name.Split('`')[0];
-            if (mainName.StartsWith("I")) mainName = mainName.Substring(1); // strip leading 'I' from interface name
-
-            GenerateImplementation<StubBuilder>(type, $"Stub{mainName}{genericInformation}.cs", "System.Delegation");
-            GenerateImplementation<CompositeBuilder>(type, $"Composite{mainName}{genericInformation}.cs", "System.Linq");
-            GenerateImplementation<DecoratorBuilder>(type, $"{mainName}Decorator{genericInformation}.cs");
+            GenerateImplementation<StubBuilder>     (type);
+            GenerateImplementation<CompositeBuilder>(type);
+            GenerateImplementation<DecoratorBuilder>(type);
          }
       }
 
@@ -145,19 +141,17 @@ namespace AutoImplement {
       /// Creates a Builder of the given generic type to implement the given interface.
       /// Output is placed in the given fileName.
       /// </summary>
-      private static void GenerateImplementation<TPatternBuilder>(Type interfaceType, string fileName, string additionalUsing = null)
+      private static void GenerateImplementation<TPatternBuilder>(Type interfaceType)
       where TPatternBuilder : IPatternBuilder {
-         var writer = new StringWriter();
+         var writer = new CSharpSourceWriter(numberOfSpacesToIndent: 4);
          var builder = (TPatternBuilder)Activator.CreateInstance(typeof(TPatternBuilder), writer);
+         var fileName = builder.GetDesiredOutputFileName(interfaceType);
          Console.WriteLine($"Generating {fileName} ...");
-         writer.Write($"// this file was created by AutoImplement");
-         if (!string.IsNullOrEmpty(additionalUsing)) writer.Write($"using {additionalUsing};");
-         writer.Write(string.Empty);
 
          writer.Write($"namespace {interfaceType.Namespace}");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.Write($"public class {builder.ClassDeclaration(interfaceType)}");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                builder.AppendExtraMembers(interfaceType);
                foreach (var member in FindAllMembers(interfaceType)) {
                   var metadata = new MemberMetadata(member);

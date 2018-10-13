@@ -41,10 +41,10 @@
       <Link>SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="CompositeBuilder.cs" />
+    <Compile Include="CSharpSourceWriter.cs" />
     <Compile Include="DecoratorBuilder.cs" />
     <Compile Include="IPatternBuilder.cs" />
     <Compile Include="MemberMetadata.cs" />
-    <Compile Include="StringWriter.cs" />
     <Compile Include="StubBuilder.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Program.cs" />

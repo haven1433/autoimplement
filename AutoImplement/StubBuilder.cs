@@ -13,13 +13,24 @@ namespace AutoImplement {
    public class StubBuilder : IPatternBuilder {
       private readonly List<string> implementedMethods = new List<string>();
 
-      private readonly StringWriter writer;
+      private readonly CSharpSourceWriter writer;
 
-      public StubBuilder(StringWriter writer) => this.writer = writer;
+      public StubBuilder(CSharpSourceWriter writer) {
+         this.writer = writer;
+         writer.WriteUsings(
+            "System",                     // Action, Func, Type
+            "System.Collections.Generic", // Dictionary
+            "System.Delegation");         // PropertyImplementation, EventImplementation
+      }
+
+      public string GetDesiredOutputFileName(Type interfaceType) {
+         var (mainName, genericInformation) = interfaceType.Name.ExtractImplementationNameParts("`");
+         return $"Stub{mainName}{genericInformation}.cs";
+      }
 
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
-         var (basename, genericInfo) = interfaceName.ExtractImplementingNameParts();
+         var (basename, genericInfo) = interfaceName.ExtractImplementationNameParts("<");
 
          return $"Stub{basename}{genericInfo} : {interfaceName}";
       }
@@ -61,6 +72,11 @@ namespace AutoImplement {
       /// If there is no delegate, it returns default.
       /// </remarks>
       public void AppendMethod(MethodInfo info, MemberMetadata method) {
+         if (info.IsGenericMethodDefinition) {
+            this.AppendGenericMethod(info, method);
+            return;
+         }
+
          var delegateName = GetStubName(method.ReturnType, method.ParameterTypes);
          var typesExtension = SanitizeMethodName(method.ParameterTypes);
 
@@ -80,6 +96,7 @@ namespace AutoImplement {
          }
 
          ImplementInterfaceMethod(info, localImplementationName, method);
+         writer.Write(string.Empty);
          implementedMethods.Add($"{method.Name}({method.ParameterTypes})");
       }
 
@@ -90,11 +107,11 @@ namespace AutoImplement {
       // {
       //    add
       //    {
-      //       ValueChanged.add(new System.EventHandler<EventArgs>(value));
+      //       ValueChanged.add(new EventHandler<EventArgs>(value));
       //    }
       //    remove
       //    {
-      //       ValueChanged.remove(new System.EventHandler<EventArgs>(value));
+      //       ValueChanged.remove(new EventHandler<EventArgs>(value));
       //    }
       // }
       /// </example>
@@ -114,14 +131,14 @@ namespace AutoImplement {
          writer.Write($"public EventImplementation<{eventData.HandlerArgsType}> {info.Name} = new EventImplementation<{eventData.HandlerArgsType}>();");
          writer.Write(string.Empty);
          writer.Write($"event {eventData.HandlerType} {eventData.DeclaringType}.{info.Name}");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.Write("add");
-            using (writer.Indent()) {
-               writer.Write($"{info.Name}.add(new System.EventHandler<{eventData.HandlerArgsType}>(value));");
+            using (writer.Scope) {
+               writer.Write($"{info.Name}.add(new EventHandler<{eventData.HandlerArgsType}>(value));");
             }
             writer.Write("remove");
-            using (writer.Indent()) {
-               writer.Write($"{info.Name}.remove(new System.EventHandler<{eventData.HandlerArgsType}>(value));");
+            using (writer.Scope) {
+               writer.Write($"{info.Name}.remove(new EventHandler<{eventData.HandlerArgsType}>(value));");
             }
          }
       }
@@ -143,16 +160,16 @@ namespace AutoImplement {
 
          // define the interface's property
          writer.Write($"{property.ReturnType} {property.DeclaringType}.{property.Name}");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             if (info.CanRead) {
                writer.Write("get");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   writer.Write($"return this.{property.Name}.get();");
                }
             }
             if (info.CanWrite) {
                writer.Write("set");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   writer.Write($"this.{property.Name}.set(value);");
                }
             }
@@ -167,37 +184,92 @@ namespace AutoImplement {
       /// </remarks>
       public void AppendItemProperty(PropertyInfo info, MemberMetadata property) {
          if (info.CanRead) {
-            writer.Write($"public System.Func<{property.ParameterTypes}, {property.ReturnType}> get_Item = ({property.ParameterNames}) => default({property.ReturnType});" + Environment.NewLine);
+            writer.Write($"public Func<{property.ParameterTypes}, {property.ReturnType}> get_Item = ({property.ParameterNames}) => default({property.ReturnType});" + Environment.NewLine);
          }
 
          if (info.CanWrite) {
-            writer.Write($"public System.Action<{property.ParameterTypes}, {property.ReturnType}> set_Item = ({property.ParameterNames}, value) => {{}};" + Environment.NewLine);
+            writer.Write($"public Action<{property.ParameterTypes}, {property.ReturnType}> set_Item = ({property.ParameterNames}, value) => {{}};" + Environment.NewLine);
          }
 
          writer.Write($"{property.ReturnType} {property.DeclaringType}.this[{property.ParameterTypesAndNames}]");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             if (info.CanRead) {
                writer.Write("get");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   writer.Write($"return get_Item({property.ParameterNames});");
                }
             }
             if (info.CanWrite) {
                writer.Write("set");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   writer.Write($"set_Item({property.ParameterNames}, value);");
                }
             }
          }
       }
 
+      ///<example>
+      ///public delegate void MethodWithGenericInputDelegate_T<T>(T input);
+      ///private readonly Dictionary<Type[], object> MethodWithGenericInputDelegates_T = new Dictionary<Type[], object>();
+      ///public void ImplementMethodWithGenericInput<T>(MethodWithGenericInputDelegate_T<T> implementation)
+      ///{
+      ///   var key = new Type[] { typeof(T) };
+      ///   MethodWithGenericInputDelegates[key] = implementation;
+      ///}
+      ///public void MethodWithGenericInput<T>(T input)
+      ///{
+      ///   var key = new Type[] { typeof(T) };
+      ///   object implementation;
+      ///   if (MethodWithGenericInputDelegates.TryGetValue(key, out implementation))
+      ///   {
+      ///      ((MethodWithGenericInputDelegate<T>)implementation).Invoke(input);
+      ///   }
+      ///}
+      ///</example>
+      private void AppendGenericMethod(MethodInfo info, MemberMetadata method) {
+         var typesExtension = SanitizeMethodName(method.ParameterTypes);
+         var typeofList = info.GetGenericArguments().Select(type => $"typeof({type.Name})").Aggregate((a, b) => $"{a}, {b}");
+         var createKey = $"var key = new Type[] {{ {typeofList} }};";
+         var returnClause = method.ReturnType == "void" ? string.Empty : "return ";
+
+         var delegateName = $"{method.Name}Delegate_{typesExtension}{method.GenericParameters}";
+         var dictionary = $"{method.Name}Delegates_{typesExtension}";
+         var methodName = $"{method.Name}{method.GenericParameters}";
+
+         writer.Write($"public delegate {method.ReturnType} {delegateName}({method.ParameterTypesAndNames});");
+         writer.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>();");
+         writer.Write($"public void Implement{methodName}({delegateName} implementation)");
+         using (writer.Scope) {
+            writer.Write(createKey);
+            writer.Write($"{dictionary}[key] = implementation;");
+         }
+         writer.Write($"public {method.ReturnType} {methodName}({method.ParameterTypesAndNames})");
+         using (writer.Scope) {
+            writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
+            writer.Write(createKey);
+            writer.Write("object implementation;");
+            writer.Write($"if ({dictionary}.TryGetValue(key, out implementation))");
+            using (writer.Scope) {
+               writer.Write($"{returnClause}(({delegateName})implementation).Invoke({method.ParameterNames});");
+            }
+            if (method.ReturnType != "void") {
+               writer.Write("else");
+               using (writer.Scope) {
+                  writer.Write($"return default({method.ReturnType});");
+               }
+            }
+         }
+
+         writer.Write(string.Empty);
+      }
+
       private string GetStubName(string returnType, string parameterTypes) {
          if (returnType == "void") {
-            var delegateName = "System.Action";
+            var delegateName = "Action";
             if (parameterTypes != string.Empty) delegateName += $"<{parameterTypes}>";
             return delegateName;
          } else {
-            var delegateName = "System.Func";
+            var delegateName = "Func";
             delegateName += parameterTypes == string.Empty ? $"<{returnType}>" : $"<{parameterTypes}, {returnType}>";
             return delegateName;
          }
@@ -223,17 +295,17 @@ namespace AutoImplement {
          var call = $"this.{localImplementationName}";
 
          writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}({method.ParameterTypesAndNames})");
-         using (writer.Indent()) {
+         using (writer.Scope) {
             writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
 
             writer.Write($"if ({call} != null)");
-            using (writer.Indent()) {
+            using (writer.Scope) {
                var returnClause = method.ReturnType == "void" ? string.Empty : "return ";
                writer.Write($"{returnClause}{call}({method.ParameterNames});");
             }
             if (method.ReturnType != "void") {
                writer.Write("else");
-               using (writer.Indent()) {
+               using (writer.Scope) {
                   writer.Write($"return default({method.ReturnType});");
                }
             }

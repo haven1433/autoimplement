@@ -8,8 +8,12 @@
 bin/
 obj/
 
+# generated files
+generatedCode/
+
 # nuget
 packages/
+*.nupkg
 
 # Test results
 TestResults/
