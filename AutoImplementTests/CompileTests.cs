@@ -23,64 +23,34 @@ namespace AutoImplementTests
       }
 
       [Fact]
-      public void CanBuildFromLocal() {
-         Program.GenerateImplementations(ThisAssembly, nameof(IEmptyInterface));
-         AssertCompile("StubEmptyInterface.cs", "CompositeEmptyInterface.cs", "EmptyInterfaceDecorator.cs");
-      }
+      public void CanBuildFromLocal() => AssertCompile(typeof(IEmptyInterface));
 
       [Fact]
-      public void CanBuildCustomEvent() {
-         Program.GenerateImplementations(ThisAssembly, nameof(IHasCustomEvent));
-         AssertCompile("StubHasCustomEvent.cs", "CompositeHasCustomEvent.cs", "HasCustomEventDecorator.cs");
-      }
+      public void CanBuildCustomEvent() => AssertCompile(typeof(IHasCustomEvent));
 
       [Fact]
-      public void CanBuildNormalEvent() {
-         Program.GenerateImplementations(ThisAssembly, nameof(IHasNormalEvent));
-         AssertCompile("StubHasNormalEvent.cs", "CompositeHasNormalEvent.cs", "HasNormalEventDecorator.cs");
-      }
+      public void CanBuildNormalEvent() => AssertCompile(typeof(IHasNormalEvent));
 
       [Fact]
-      public void CanBuildStandardEvent() {
-         Program.GenerateImplementations(ThisAssembly, nameof(IUseEvent));
-         AssertCompile("StubUseEvent.cs", "CompositeUseEvent.cs", "UseEventDecorator.cs");
-      }
+      public void CanBuildStandardEvent() => AssertCompile(typeof(IUseEvent));
 
       [Fact]
-      public void CanMakeGetProperty() {
-         Program.GenerateImplementations(ThisAssembly, nameof(IHaveGetProperty));
-         AssertCompile("StubHaveGetProperty.cs", "CompositeHaveGetProperty.cs", "HaveGetPropertyDecorator.cs");
-      }
+      public void CanMakeGetProperty() => AssertCompile(typeof(IHaveGetProperty));
 
       [Fact]
-      public void CanMakeSetProperty() {
-         Program.GenerateImplementations(ThisAssembly, nameof(IHaveSetProperty));
-         AssertCompile("StubHaveSetProperty.cs", "CompositeHaveSetProperty.cs", "HaveSetPropertyDecorator.cs");
-      }
+      public void CanMakeSetProperty() => AssertCompile(typeof(IHaveSetProperty));
 
       [Fact]
-      public void CanMakeGenericProperty() {
-         Program.GenerateImplementations(ThisAssembly, "IHaveGenericProperty`1");
-         AssertCompile("StubHaveGenericProperty`1.cs", "CompositeHaveGenericProperty`1.cs", "HaveGenericPropertyDecorator`1.cs");
-      }
+      public void CanMakeGenericProperty() => AssertCompile(typeof(IHaveGenericProperty<>));
 
       [Fact]
-      public void CanMakeTypeWithConflictingMethodNames() {
-         Program.GenerateImplementations(ThisAssembly, nameof(IHaveConflictingMethods));
-         AssertCompile("StubHaveConflictingMethods.cs", "CompositeHaveConflictingMethods.cs", "HaveConflictingMethodsDecorator.cs");
-      }
+      public void CanMakeTypeWithConflictingMethodNames() => AssertCompile(typeof(IHaveConflictingMethods));
 
       [Fact]
-      public void CanMakeTypesWithOutParameterMethods() {
-         Program.GenerateImplementations(ThisAssembly, nameof(IHaveOutMethods));
-         AssertCompile("StubHaveOutMethods.cs", "CompositeHaveOutMethods.cs", "HaveOutMethodsDecorator.cs");
-      }
+      public void CanMakeTypesWithOutParameterMethods() => AssertCompile(typeof(IHaveOutMethods));
 
       [Fact]
-      public void CanMakeTypeWithGenericMethods() {
-         Program.GenerateImplementations(ThisAssembly, nameof(IHaveGenericMethods));
-         AssertCompile("StubHaveGenericMethods.cs", "CompositeHaveGenericMethods.cs", "HaveGenericMethodsDecorator.cs");
-      }
+      public void CanMakeTypeWithGenericMethods() => AssertCompile(typeof(IHaveGenericMethods));
 
       [Fact]
       public void CanGenerateFromInGenericType() => AssertCompile(typeof(IInputInterface<>));
