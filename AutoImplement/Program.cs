@@ -9,7 +9,7 @@ using System.Reflection;
 [assembly: AssemblyTitle("AutoImplement")]
 [assembly: AssemblyProduct("AutoImplement")]
 
-namespace AutoImplement {
+namespace HavenSoft.AutoImplement {
    public static class Program {
       public static void Main(params string[] args) {
          if (args.Length == 0) {

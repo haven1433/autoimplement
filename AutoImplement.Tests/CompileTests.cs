@@ -1,4 +1,4 @@
-﻿using AutoImplement;
+﻿using HavenSoft.AutoImplement;
 using Microsoft.CSharp;
 using System;
 using System.CodeDom.Compiler;
@@ -7,13 +7,13 @@ using System.Linq;
 using System.Reflection;
 using Xunit;
 
-[assembly: AssemblyTitle("AutoImplement")]
+[assembly: AssemblyTitle("AutoImplement.Tests")]
 [assembly: AssemblyProduct("AutoImplement")]
 
-namespace AutoImplementTests
+namespace HavenSoft.AutoImplement.Tests
 {
    public class CompileTests {
-      const string ThisAssembly = "AutoImplementTests.dll";
+      const string ThisAssembly = "AutoImplement.Tests.dll";
 
       [Fact]
       public void CanBuildFromGAC() {
@@ -80,7 +80,7 @@ namespace AutoImplementTests
 
          var parameters = new CompilerParameters {
             ReferencedAssemblies = {
-               assemblies.Single(asm => asm.Contains("AutoImplementTests")),
+               assemblies.Single(asm => asm.Contains("AutoImplement.Tests")),
                assemblies.Single(asm => asm.Contains("System.Core")),
                new FileInfo("System.Delegation.dll").FullName,
             },

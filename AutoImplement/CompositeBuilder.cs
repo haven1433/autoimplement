@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace AutoImplement {
+namespace HavenSoft.AutoImplement {
    public class CompositeBuilder : IPatternBuilder {
       private readonly List<string> implementedMethods = new List<string>();
 

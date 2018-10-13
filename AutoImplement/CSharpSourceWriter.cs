@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace AutoImplement {
+namespace HavenSoft.AutoImplement {
    public class CSharpSourceWriter {
       private readonly StringBuilder builder = new StringBuilder();
 

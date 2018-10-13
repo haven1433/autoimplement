@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using static System.Reflection.GenericParameterAttributes;
 
-namespace AutoImplement {
+namespace HavenSoft.AutoImplement {
    public class MemberMetadata {
       public string DeclaringType { get; }
       public string Name { get; }

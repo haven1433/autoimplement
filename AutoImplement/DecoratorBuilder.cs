@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace AutoImplement {
+namespace HavenSoft.AutoImplement {
    /// <summary>
    /// To build a custom decorator, extend the class that this builds.
    /// </summary>

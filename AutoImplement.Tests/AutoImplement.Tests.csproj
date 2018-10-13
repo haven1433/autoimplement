@@ -8,8 +8,8 @@
     <ProjectGuid>{61F50AB9-CCB2-4E38-8EB3-61C80DD85F61}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AutoImplementTests</RootNamespace>
-    <AssemblyName>AutoImplementTests</AssemblyName>
+    <RootNamespace>AutoImplement.Tests</RootNamespace>
+    <AssemblyName>AutoImplement.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>

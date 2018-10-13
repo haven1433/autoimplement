@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace AutoImplementTests {
+namespace HavenSoft.AutoImplement.Tests {
    public interface IEmptyInterface { }
 
    public delegate void CustomEventHandler(object sender, int args);

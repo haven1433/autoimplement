@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AutoImplement
+namespace HavenSoft.AutoImplement
 {
    public static class ExtensionMethods
    {

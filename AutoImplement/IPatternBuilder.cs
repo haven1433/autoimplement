@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-namespace AutoImplement {
+namespace HavenSoft.AutoImplement {
    /// <summary>
    /// Hidden requirement:
    /// An implementation of IPatternBuilder is expected to have a constructor that takes

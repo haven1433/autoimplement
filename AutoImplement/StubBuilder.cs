@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace AutoImplement {
+namespace HavenSoft.AutoImplement {
    /// <summary>
    /// Automatic Stub implementations make use of C#'s 'explicit interface implementation' feature.
    /// Mutable members with the interface's member's names are added to the type.

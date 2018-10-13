@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{84EDE6E7-7098-4F05-9AB8-9EC8FB24CB6D}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>AutoImplement</RootNamespace>
+    <RootNamespace>HavenSoft.AutoImplement</RootNamespace>
     <AssemblyName>AutoImplement</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
