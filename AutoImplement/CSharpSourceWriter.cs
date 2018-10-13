@@ -52,18 +52,16 @@ namespace AutoImplement {
       public override string ToString() => builder.ToString();
 
       private class IndentationScope : IDisposable {
-         private const int OneLevelOfIndentation = 4;
-
          private readonly CSharpSourceWriter parent;
 
          public IndentationScope(CSharpSourceWriter writer) {
             parent = writer;
             parent.Write("{");
-            parent.indentLevel += OneLevelOfIndentation;
+            parent.indentLevel += 1;
          }
 
          public void Dispose() {
-            parent.indentLevel -= OneLevelOfIndentation;
+            parent.indentLevel -= 1;
             parent.Write("}");
          }
       }
