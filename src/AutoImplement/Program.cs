@@ -42,7 +42,7 @@ namespace HavenSoft.AutoImplement {
          foreach (var typeName in typeNames) {
             if (!TryFindType(assembly, typeName, out var type)) continue;
 
-            GenerateImplementation<StubBuilder>     (type);
+            GenerateImplementation<StubBuilder>(type);
             GenerateImplementation<CompositeBuilder>(type);
             GenerateImplementation<DecoratorBuilder>(type);
          }
@@ -156,8 +156,8 @@ namespace HavenSoft.AutoImplement {
                foreach (var member in FindAllMembers(interfaceType)) {
                   var metadata = new MemberMetadata(member);
                   switch (member.MemberType) {
-                     case MemberTypes.Method:   ImplementMethod  (member, metadata, builder); break;
-                     case MemberTypes.Event:    ImplementEvent   (member, metadata, builder); break;
+                     case MemberTypes.Method: ImplementMethod(member, metadata, builder); break;
+                     case MemberTypes.Event: ImplementEvent(member, metadata, builder); break;
                      case MemberTypes.Property: ImplementProperty(member, metadata, builder); break;
                      default:
                         throw new NotImplementedException($"AutoImplement has no way to implement a {member.MemberType} member.");

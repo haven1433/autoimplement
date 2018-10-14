@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace HavenSoft.AutoImplement
-{
-   public static class ExtensionMethods
-   {
+namespace HavenSoft.AutoImplement {
+   public static class ExtensionMethods {
       // from https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/built-in-types-table
       private static readonly IReadOnlyDictionary<string, string> typeList = new Dictionary<string, string>
       {
@@ -27,8 +25,7 @@ namespace HavenSoft.AutoImplement
          { "System.String",  "string" },
       };
 
-      public static string CreateCsName(this Type type, string currentNamespace)
-      {
+      public static string CreateCsName(this Type type, string currentNamespace) {
          // dealing with generic arguments
          var genericArgList = type.GetGenericArguments().Select(arg => arg.CreateCsName(currentNamespace)).ToList();
          string genericArguments = string.Empty;

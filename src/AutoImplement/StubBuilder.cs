@@ -279,7 +279,7 @@ namespace HavenSoft.AutoImplement {
       private static string GetDefaultClause(string returnType) {
          return returnType == "void" ? string.Empty : $"default({returnType});";
       }
-      
+
       /// <summary>
       /// When converting type lists into extensions to put on the end of method names,
       /// we have to sanitize them by removing characters that are illegal in C# member names.

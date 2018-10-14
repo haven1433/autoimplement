@@ -51,7 +51,7 @@ namespace HavenSoft.AutoImplement {
             var constraints = new List<string>();
             foreach (var constraint in arg.GetGenericParameterConstraints()) {
                var typeConstraint = constraint.CreateCsName(containingNamespace);
-               if (typeConstraint == "System.ValueType" || (containingNamespace=="System" && typeConstraint == "ValueType")) {
+               if (typeConstraint == "System.ValueType" || (containingNamespace == "System" && typeConstraint == "ValueType")) {
                   // Cannot constrain by System.ValueType in C#. Constrain using 'struct' instead.
                } else {
                   constraints.Add(typeConstraint);

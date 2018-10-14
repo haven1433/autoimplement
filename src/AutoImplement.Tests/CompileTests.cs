@@ -10,8 +10,7 @@ using Xunit;
 [assembly: AssemblyTitle("AutoImplement.Tests")]
 [assembly: AssemblyProduct("AutoImplement")]
 
-namespace HavenSoft.AutoImplement.Tests
-{
+namespace HavenSoft.AutoImplement.Tests {
    public class CompileTests {
       const string ThisAssembly = "AutoImplement.Tests.dll";
 

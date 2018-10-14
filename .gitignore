@@ -1,19 +1,10 @@
 
 # User-specific files
-*.suo
-*.user
 .vs/
+*.user
 
 # Build results
-bin/
-obj/
-
-# generated files
-generatedCode/
+artifacts/
 
 # nuget
 packages/
-*.nupkg
-
-# Test results
-TestResults/
