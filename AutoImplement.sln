@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2047
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoImplement", "AutoImplement\AutoImplement.csproj", "{84EDE6E7-7098-4F05-9AB8-9EC8FB24CB6D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoImplement", "src\AutoImplement\AutoImplement.csproj", "{84EDE6E7-7098-4F05-9AB8-9EC8FB24CB6D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoImplement.Tests", "AutoImplement.Tests\AutoImplement.Tests.csproj", "{61F50AB9-CCB2-4E38-8EB3-61C80DD85F61}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoImplement.Tests", "src\AutoImplement.Tests\AutoImplement.Tests.csproj", "{61F50AB9-CCB2-4E38-8EB3-61C80DD85F61}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Delegation", "System.Delegation\System.Delegation.csproj", "{B77A226F-8CF4-4BF4-9727-CFE4055BCE5A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Delegation", "src\System.Delegation\System.Delegation.csproj", "{B77A226F-8CF4-4BF4-9727-CFE4055BCE5A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
