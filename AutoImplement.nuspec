@@ -17,13 +17,13 @@
     <summary>
       Provide automatic implementations for Stubs, Decorators, and Composites.
     </summary>
-    <releaseNotes>Intitial Release</releaseNotes>
+    <releaseNotes>Improved support for generic interfaces / methods</releaseNotes>
     <projectUrl>https://github.com/haven1433/autoimplement</projectUrl>
     <copyright>Copyright 2018</copyright>
   </metadata>
   <files>
-    <file src="AutoImplement\bin\Release\AutoImplement.exe" target="" />
-    <file src="System.Delegation\bin\Release\System.Delegation.dll" target="lib" />
-    <file src="System.Delegation\bin\Release\System.Delegation.xml" target="lib" />
+    <file src="artifacts\AutoImplement\bin\Release\AutoImplement.exe" target="" />
+    <file src="artifacts\System.Delegation\bin\Release\System.Delegation.dll" target="lib" />
+    <file src="artifacts\System.Delegation\bin\Release\System.Delegation.xml" target="lib" />
   </files>
 </package>

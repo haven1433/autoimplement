@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace AutoImplementTests {
+namespace HavenSoft.AutoImplement.Tests {
    public interface IEmptyInterface { }
 
    public delegate void CustomEventHandler(object sender, int args);
@@ -45,5 +45,19 @@ namespace AutoImplementTests {
       void MethodWithNestedGenericTypeInParameter<T>(IList<T> list);
       void MethodWithGenericOutParameter<T>(out T value);
       void MethodWithGenericRefParameter<T>(ref T value);
+   }
+
+   public interface IInputInterface<in T> { }
+
+   public interface IOutputInterface<out T> { }
+
+   public interface IInterfaceWithMultipleConstraints<in T> where T : IEquatable<T>, new() { }
+
+   public interface IInterfaceWithTypeConstrainedMethods {
+      T Create<T>() where T : new();
+      void DoStuff1<T>(T argument) where T : class;
+      void DoStuff2<T>(T argument) where T : struct;
+      void DoStuff3<T>(T argument) where T : IEnumerable<T>;
+      void DoStuff4<T>(T argument) where T : Type;
    }
 }

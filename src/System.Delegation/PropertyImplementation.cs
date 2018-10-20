@@ -3,8 +3,7 @@
 [assembly: AssemblyTitle("System.Delegation")]
 [assembly: AssemblyProduct("System.Delegation")]
 
-namespace System.Delegation
-{
+namespace System.Delegation {
    /// <example>
    /// this.MyProperty = new PropertyImplementation&lt;int&gt;();
    /// 
@@ -21,16 +20,14 @@ namespace System.Delegation
    /// <remarks>
    /// Implicitly casting a T to a new PropertyImplementation resets its delegates to the defaults.
    /// </remarks>
-   public class PropertyImplementation<T>
-   {
+   public class PropertyImplementation<T> {
       public Func<T> get;
 
       public Action<T> set;
 
       public T value;
 
-      public PropertyImplementation(T initialValue = default(T))
-      {
+      public PropertyImplementation(T initialValue = default(T)) {
          value = initialValue;
          set = input => value = input;
          get = () => value;

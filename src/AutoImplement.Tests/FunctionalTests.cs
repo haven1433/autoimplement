@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using Xunit;
 
-namespace AutoImplementTests {
+namespace HavenSoft.AutoImplement.Tests {
    public class FunctionalTests {
       [Fact]
       public void CustomEventStubClassActuallyWorksAsExpect() {

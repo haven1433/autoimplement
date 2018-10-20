@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace AutoImplement {
+namespace HavenSoft.AutoImplement {
    public class CompositeBuilder : IPatternBuilder {
       private readonly List<string> implementedMethods = new List<string>();
 
@@ -22,8 +22,9 @@ namespace AutoImplement {
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
          var (basename, genericInfo) = interfaceName.ExtractImplementationNameParts("<");
+         var constraints = MemberMetadata.GetGenericParameterConstraints(interfaceType.GetGenericArguments(), interfaceType.Namespace);
 
-         return $"Composite{basename}{genericInfo} : System.Collections.Generic.List<{interfaceName}>, {interfaceName}";
+         return $"Composite{basename}{genericInfo} : System.Collections.Generic.List<{interfaceName}>, {interfaceName}{constraints}";
       }
 
       public void AppendExtraMembers(Type interfaceType) { }
@@ -50,9 +51,9 @@ namespace AutoImplement {
          // Use an explicit implementation only if the signature has already been used
          // example: IEnumerable<T>, which extends IEnumerable
          if (!implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
-            writer.Write($"public {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
+            writer.Write($"public {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames}){method.GenericParameterConstraints}");
          } else {
-            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
+            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames}){method.GenericParameterConstraints}");
          }
 
          using (writer.Scope) {

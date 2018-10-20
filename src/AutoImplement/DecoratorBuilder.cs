@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace AutoImplement {
+namespace HavenSoft.AutoImplement {
    /// <summary>
    /// To build a custom decorator, extend the class that this builds.
    /// </summary>
@@ -24,8 +24,9 @@ namespace AutoImplement {
       public string ClassDeclaration(Type interfaceType) {
          var interfaceName = interfaceType.CreateCsName(interfaceType.Namespace);
          var (basename, genericInfo) = interfaceName.ExtractImplementationNameParts("<");
+         var constraints = MemberMetadata.GetGenericParameterConstraints(interfaceType.GetGenericArguments(), interfaceType.Namespace);
 
-         return $"{basename}Decorator{genericInfo} : {interfaceName}";
+         return $"{basename}Decorator{genericInfo} : {interfaceName}{constraints}";
       }
 
       /// <remarks>
@@ -68,14 +69,14 @@ namespace AutoImplement {
          // When it does happen, hopefully the creator of the child interface wants the child to behave as the parent...
          // in which case this is the correct implementation.
          if (implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
-            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
+            writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames}){method.GenericParameterConstraints}");
             using (writer.Scope) {
                writer.Write($"{returnClause}{method.Name}({method.ParameterNames});");
             }
             return;
          }
 
-         writer.Write($"public virtual {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames})");
+         writer.Write($"public virtual {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames}){method.GenericParameterConstraints}");
          using (writer.Scope) {
             writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
 
