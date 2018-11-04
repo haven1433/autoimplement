@@ -157,6 +157,8 @@ namespace HavenSoft.AutoImplement {
          AppendPropertyCommon(info, property, $"{innerObject}[{property.ParameterNames}]");
       }
 
+      public void BuildCompleted() { }
+
       private void AppendPropertyCommon(PropertyInfo info, MemberMetadata property, string member) {
          using (writer.Scope) {
             if (info.CanRead) {

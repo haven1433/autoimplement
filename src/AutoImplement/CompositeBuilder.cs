@@ -146,6 +146,8 @@ namespace HavenSoft.AutoImplement {
          AppendPropertyCommon(info, property, $"listItem[{property.ParameterNames}]");
       }
 
+      public void BuildCompleted() { }
+
       private void AppendPropertyCommon(PropertyInfo info, MemberMetadata property, string listItem) {
          using (writer.Scope) {
             if (info.CanRead) {

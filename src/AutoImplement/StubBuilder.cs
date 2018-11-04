@@ -209,6 +209,8 @@ namespace HavenSoft.AutoImplement {
          }
       }
 
+      public void BuildCompleted() { }
+
       ///<example>
       ///public delegate void MethodWithGenericInputDelegate_T<T>(T input);
       ///private readonly Dictionary<Type[], object> MethodWithGenericInputDelegates_T = new Dictionary<Type[], object>();

@@ -34,5 +34,10 @@ namespace HavenSoft.AutoImplement {
       /// the 'Item' property in C# is special: it's exposed as this[]
       /// </summary>
       void AppendItemProperty(PropertyInfo info, MemberMetadata metadata);
+
+      /// <summary>
+      /// Called when there are no more methods and all the scopes have been closed. Gives the builder a final chance to append things.
+      /// </summary>
+      void BuildCompleted();
    }
 }

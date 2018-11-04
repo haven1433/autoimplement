@@ -53,7 +53,8 @@
       <Link>SharedAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="..\..\artifacts\$(AssemblyName)\codegen\StubNotifyPropertyChanged.cs" />
-    <Compile Include="CompileTests.cs" />
+    <Compile Include="ClassCompileTests.cs" />
+    <Compile Include="InterfaceCompileTests.cs" />
     <Compile Include="FunctionalTests.cs" />
     <Compile Include="TestInterfaces.cs" />
   </ItemGroup>

@@ -38,6 +38,8 @@ namespace HavenSoft.AutoImplement {
             var eventSignature = eventInfo.EventHandlerType.GetMethod("Invoke");
             var eventArgsType = eventSignature.GetParameters()[1].ParameterType;
             HandlerArgsType = eventArgsType.CreateCsName(declaringNamespace);
+         } else if (info is ConstructorInfo constructorInfo) {
+            (ParameterTypes, ParameterNames, ParameterTypesAndNames) = BuildArgumentLists(constructorInfo.GetParameters());
          }
       }
 

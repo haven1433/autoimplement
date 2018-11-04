@@ -38,13 +38,40 @@ namespace HavenSoft.AutoImplement {
          Console.WriteLine($"Done generating implementations from {typeNames.Length} interfaces.");
       }
 
+      public class MemberInfoEqualityComparerer : IEqualityComparer<MemberInfo> {
+         public bool Equals(MemberInfo a, MemberInfo b) {
+            if (a.Name != b.Name) return false;
+            if (a.MemberType != b.MemberType) return false;
+            if (a.MemberType == MemberTypes.Method) {
+               var aInfo = (MethodInfo)a;
+               var bInfo = (MethodInfo)b;
+               if (!object.Equals(aInfo.ReturnType, bInfo.ReturnType)) return false;
+               return aInfo.GetParameters().Select(p => p.ParameterType).SequenceEqual(bInfo.GetParameters().Select(p => p.ParameterType));
+            }
+            return true; // if it's not a method, then equivalent names is good enough
+         }
+         public int GetHashCode(MemberInfo obj) => obj.Name.GetHashCode();
+      }
+
+      public static IList<MemberInfo> FindAllMembers(Type type) {
+         var list = new List<MemberInfo>(type.GetMembers());
+         list.AddRange(type.GetMembers(BindingFlags.Instance | BindingFlags.NonPublic));
+         if (type.BaseType != null) list.AddRange(FindAllMembers(type.BaseType));
+         list.AddRange(type.GetInterfaces().SelectMany(FindAllMembers));
+         return list.Distinct(new MemberInfoEqualityComparerer()).ToList();
+      }
+
       private static void GenerateImplementations(Assembly assembly, string[] typeNames) {
          foreach (var typeName in typeNames) {
             if (!TryFindType(assembly, typeName, out var type)) continue;
 
-            GenerateImplementation<StubBuilder>(type);
-            GenerateImplementation<CompositeBuilder>(type);
-            GenerateImplementation<DecoratorBuilder>(type);
+            if (type.IsInterface) {
+               GenerateImplementation<StubBuilder>(type);
+               GenerateImplementation<CompositeBuilder>(type);
+               GenerateImplementation<DecoratorBuilder>(type);
+            } else {
+               GenerateImplementation<ClassStubBuilder>(type);
+            }
          }
       }
 
@@ -122,9 +149,11 @@ namespace HavenSoft.AutoImplement {
          foreach (var type in assembly.ExportedTypes) {
             if (type.FullName.ToUpper().Contains(typeName.ToUpper())) similarOptions.Add(type.FullName);
             if (type.Name == typeName || type.FullName == typeName) {
+               if (type.IsValueType) throw new InvalidOperationException("Cannot make implementations from a value type (struct, enum, or primitive).");
+               if (type.IsSealed) throw new InvalidOperationException("Cannot make implementations from a sealed type.");
+               if (type.IsNotPublic) throw new InvalidOperationException("Cannot make implementations from a non-public type.");
                result = type;
-               if (!type.IsInterface) Console.WriteLine($"{type.FullName} is not an interface type.");
-               return type.IsInterface;
+               return true;
             }
          }
 
@@ -148,6 +177,7 @@ namespace HavenSoft.AutoImplement {
          var fileName = builder.GetDesiredOutputFileName(interfaceType);
          Console.WriteLine($"Generating {fileName} ...");
 
+         writer.Write($"// this file was created by AutoImplement");
          writer.Write($"namespace {interfaceType.Namespace}");
          using (writer.Scope) {
             writer.Write($"public class {builder.ClassDeclaration(interfaceType)}");
@@ -160,24 +190,22 @@ namespace HavenSoft.AutoImplement {
                      case MemberTypes.Event: ImplementEvent(member, metadata, builder); break;
                      case MemberTypes.Property: ImplementProperty(member, metadata, builder); break;
                      default:
-                        throw new NotImplementedException($"AutoImplement has no way to implement a {member.MemberType} member.");
+                        // the only other options are Field, Type, NestedType, and Constructor
+                        // for classes, any of these are possible, and all can be ignored.
+                        break;
                   }
                }
             }
+            builder.BuildCompleted();
          }
 
          File.WriteAllText(fileName, writer.ToString());
       }
 
-      private static IList<MemberInfo> FindAllMembers(Type baseType) {
-         var list = new List<MemberInfo>(baseType.GetMembers());
-         list.AddRange(baseType.GetInterfaces().SelectMany(FindAllMembers).Distinct());
-         return list;
-      }
-
       private static void ImplementMethod(MemberInfo info, MemberMetadata metadata, IPatternBuilder builder) {
          var methodInfo = (MethodInfo)info;
          if (methodInfo.IsSpecialName) return;
+         if (metadata.Name == "Finalize" && methodInfo.IsVirtual) return; // Finalize is special: do not override it. Use a destructor instead.
          builder.AppendMethod(methodInfo, metadata);
       }
 
