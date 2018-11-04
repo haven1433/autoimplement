@@ -23,6 +23,18 @@ namespace HavenSoft.AutoImplement {
             "System.Delegation");         // PropertyImplementation, EventImplementation
       }
 
+      /// <summary>
+      /// When converting type lists into extensions to put on the end of method names,
+      /// we have to sanitize them by removing characters that are illegal in C# member names.
+      /// </summary>
+      public static string SanitizeMethodName(string name) {
+         return name
+            .Replace(", ", "_")
+            .Replace(">", "_")
+            .Replace("<", "_")
+            .Replace(".", "_");
+      }
+
       public string GetDesiredOutputFileName(Type interfaceType) {
          var (mainName, genericInformation) = interfaceType.Name.ExtractImplementationNameParts("`");
          return $"Stub{mainName}{genericInformation}.cs";
@@ -74,7 +86,7 @@ namespace HavenSoft.AutoImplement {
       /// </remarks>
       public void AppendMethod(MethodInfo info, MemberMetadata method) {
          if (info.IsGenericMethodDefinition) {
-            this.AppendGenericMethod(info, method);
+            AppendGenericMethod(info, method);
             return;
          }
 
@@ -280,18 +292,6 @@ namespace HavenSoft.AutoImplement {
 
       private static string GetDefaultClause(string returnType) {
          return returnType == "void" ? string.Empty : $"default({returnType});";
-      }
-
-      /// <summary>
-      /// When converting type lists into extensions to put on the end of method names,
-      /// we have to sanitize them by removing characters that are illegal in C# member names.
-      /// </summary>
-      private static string SanitizeMethodName(string name) {
-         return name
-            .Replace(", ", "_")
-            .Replace(">", "_")
-            .Replace("<", "_")
-            .Replace(".", "_");
       }
 
       private void ImplementInterfaceMethod(MethodInfo info, string localImplementationName, MemberMetadata method) {

@@ -14,6 +14,7 @@ namespace HavenSoft.AutoImplement {
    /// </summary>
    public class ClassStubBuilder : IPatternBuilder {
 
+      private readonly List<string> implementedMethods = new List<string>();
       private readonly CSharpSourceWriter writer, helperWriter;
       private readonly Stack<IDisposable> helperScopes = new Stack<IDisposable>();
       private string stubTypeName;
@@ -55,6 +56,8 @@ namespace HavenSoft.AutoImplement {
             var metadata = new MemberMetadata(constructor);
             AppendConstructor(type, constructor, metadata);
          }
+
+         implementedMethods.Clear();
       }
 
       public void AppendMethod(MethodInfo info, MemberMetadata metadata) {
@@ -66,28 +69,22 @@ namespace HavenSoft.AutoImplement {
          var delegateName = GetDelegateName(metadata.ReturnType, metadata.ParameterTypes);
          var returnClause = metadata.ReturnType != "void" ? "return " : string.Empty;
 
-         writer.Write($"public new {delegateName} {metadata.Name};");
+         var typesExtension = StubBuilder.SanitizeMethodName(metadata.ParameterTypes);
 
-         if (info.IsVirtual) {
-            helperWriter.Write($"public {metadata.ReturnType} Base{metadata.Name}{metadata.GenericParameterConstraints}({metadata.ParameterTypesAndNames})");
-            using (helperWriter.Scope) {
-               helperWriter.Write($"{returnClause}base.{metadata.Name}({metadata.ParameterNames});");
-            }
+         var methodsWithMatchingNameButNotSignature = implementedMethods.Where(name => name.Split('(')[0] == metadata.Name && name != $"{metadata.Name}({metadata.ParameterTypes})");
+         string localImplementationName = methodsWithMatchingNameButNotSignature.Any() ? $"{metadata.Name}_{typesExtension}" : metadata.Name;
+
+         if (info.GetParameters().Any(p => p.ParameterType.IsByRef)) {
+            delegateName = $"{metadata.Name}Delegate_{typesExtension}";
+            writer.Write($"public delegate {metadata.ReturnType} {delegateName}({metadata.ParameterTypesAndNames});" + Environment.NewLine);
          }
 
-         helperWriter.Write($"{access} override {metadata.ReturnType} {metadata.Name}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints}");
-         using (helperWriter.Scope) {
-            helperWriter.Write($"if ((({stubTypeName})this).{metadata.Name} != null)");
-            using (helperWriter.Scope) {
-               helperWriter.Write($"{returnClause}(({stubTypeName})this).{metadata.Name}({metadata.ParameterNames});");
-            }
-            if (metadata.ReturnType != "void") {
-               helperWriter.Write("else");
-               using (helperWriter.Scope) {
-                  helperWriter.Write($"return default({metadata.ReturnType});");
-               }
-            }
-         }
+         writer.Write($"public new {delegateName} {localImplementationName};");
+
+         WriteHelperBaseMethod(info, metadata);
+         WriteHelperMethod(info, metadata, access, stubTypeName, localImplementationName);
+
+         implementedMethods.Add($"{metadata.Name}({metadata.ParameterTypes})");
       }
 
       public void AppendEvent(EventInfo info, MemberMetadata metadata) {
@@ -99,7 +96,7 @@ namespace HavenSoft.AutoImplement {
 
          writer.Write($"public new EventImplementation<{metadata.HandlerArgsType}> {metadata.Name} = new EventImplementation<{metadata.HandlerArgsType}>();");
 
-         if (methodInfo.IsVirtual) {
+         if (methodInfo.IsVirtual && !methodInfo.IsAbstract) {
             helperWriter.Write($"public void Base{metadata.Name}Add({metadata.HandlerType} e) {{ base.{metadata.Name} += e; }}");
             helperWriter.Write($"public void Base{metadata.Name}Remove({metadata.HandlerType} e) {{ base.{metadata.Name} -= e; }}");
          }
@@ -176,6 +173,37 @@ namespace HavenSoft.AutoImplement {
          writer.Write(helperWriter.ToString());
       }
 
+      private void WriteHelperBaseMethod(MethodInfo info, MemberMetadata metadata) {
+         var returnClause = metadata.ReturnType != "void" ? "return " : string.Empty;
+
+         if (info.IsVirtual && !info.IsAbstract) {
+            helperWriter.Write($"public {metadata.ReturnType} Base{metadata.Name}{metadata.GenericParameterConstraints}({metadata.ParameterTypesAndNames})");
+            using (helperWriter.Scope) {
+               helperWriter.Write($"{returnClause}base.{metadata.Name}({metadata.ParameterNames});");
+            }
+         }
+      }
+
+      private void WriteHelperMethod(MethodInfo info, MemberMetadata metadata, string access, string stubTypeName, string localImplementationName) {
+         var returnClause = metadata.ReturnType != "void" ? "return " : string.Empty;
+
+         helperWriter.Write($"{access} override {metadata.ReturnType} {metadata.Name}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints}");
+         using (helperWriter.Scope) {
+            var call = $"(({stubTypeName})this).{localImplementationName}";
+            helperWriter.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
+            helperWriter.Write($"if ({call} != null)");
+            using (helperWriter.Scope) {
+               helperWriter.Write($"{returnClause}{call}({metadata.ParameterNames});");
+            }
+            if (metadata.ReturnType != "void") {
+               helperWriter.Write("else");
+               using (helperWriter.Scope) {
+                  helperWriter.Write($"return default({metadata.ReturnType});");
+               }
+            }
+         }
+      }
+
       private void AppendConstructor(Type type, ConstructorInfo info, MemberMetadata constructorMetadata) {
          if (info.IsPrivate || info.IsStatic || info.IsFamilyAndAssembly || info.IsAssembly) return;
          var typeName = type.CreateCsName(type.Namespace);
@@ -207,7 +235,13 @@ namespace HavenSoft.AutoImplement {
          if (info.IsSpecialName || info.IsStatic || info.IsPrivate || !info.IsVirtual || info.IsAbstract || info.IsAssembly || info.IsFamilyAndAssembly) return;
          if (info.IsVirtual && info.Name == "Finalize") return; // Finalize is special in C#. Use a destructor instead.
 
-         writer.Write($"{metadata.Name} = Base{metadata.Name};");
+         var typesExtension = StubBuilder.SanitizeMethodName(metadata.ParameterTypes);
+         var methodsWithMatchingNameButNotSignature = implementedMethods.Where(name => name.Split('(')[0] == metadata.Name && name != $"{metadata.Name}({metadata.ParameterTypes})");
+         string localImplementationName = methodsWithMatchingNameButNotSignature.Any() ? $"{metadata.Name}_{typesExtension}" : metadata.Name;
+
+         writer.Write($"{localImplementationName} = Base{metadata.Name};");
+
+         implementedMethods.Add($"{metadata.Name}({metadata.ParameterTypes})");
       }
 
       private void AppendToConstructorFromEvent(EventInfo info, MemberMetadata metadata) {

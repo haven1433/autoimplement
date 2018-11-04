@@ -1,17 +1,19 @@
 ﻿using Microsoft.CSharp;
 using System;
 using System.CodeDom.Compiler;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using Xunit;
 
 namespace HavenSoft.AutoImplement.Tests {
    public partial class ClassCompileTests {
-      internal static void AssertCompile(Type interfaceType) {
-         Program.GenerateImplementations(InterfaceCompileTests.ThisAssembly, interfaceType.Name);
+      internal static void AssertCompile(Type type) {
+         Program.GenerateImplementations(InterfaceCompileTests.ThisAssembly, type.Name);
 
          var writer = new CSharpSourceWriter();
-         AssertCompile(new StubBuilder(writer).GetDesiredOutputFileName(interfaceType));
+         var fileName = new StubBuilder(writer).GetDesiredOutputFileName(type);
+         AssertCompile(fileName);
       }
 
       private static void AssertCompile(params string[] contents) {
@@ -22,6 +24,7 @@ namespace HavenSoft.AutoImplement.Tests {
             ReferencedAssemblies = {
                assemblies.Single(asm => asm.Contains("AutoImplement.Tests")),
                assemblies.Single(asm => asm.Contains("System.Core")),
+               assemblies.Single(asm => asm.Contains("System.dll")),
                new FileInfo("System.Delegation.dll").FullName,
             },
          };
@@ -76,7 +79,57 @@ namespace HavenSoft.AutoImplement.Tests {
       public void CanBuildAbstractClassWithProperties() => AssertCompile(typeof(AbstractClassWithProperties));
    }
 
-   // TODO test with virtual/abstract methods
-   // TODO test with virtual/abstract events
-   // TODO test with multiple methods with the same name
+   public abstract class AbstractClassThatAbstractlyImplementsAnEventInterface : INotifyPropertyChanged {
+      public abstract event PropertyChangedEventHandler PropertyChanged;
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildAbstractClassWithAbstractEventsFromInterface() => AssertCompile(typeof(AbstractClassThatAbstractlyImplementsAnEventInterface));
+   }
+
+   public abstract class AbstractClassThatAbstractlyImplementsAMethodInterface : IDisposable {
+      public abstract void Dispose();
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildAbstractClassWithAbstractMethodFromInterface() => AssertCompile(typeof(AbstractClassThatAbstractlyImplementsAMethodInterface));
+   }
+
+   public abstract class AbstractClassWithMultipleInterfaceImplementations : INotifyPropertyChanged, IDisposable {
+      public virtual event PropertyChangedEventHandler PropertyChanged;
+      public abstract void Dispose();
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildAbstractClassWithMultipleVirtualInterfaceImplementations() => AssertCompile(typeof(AbstractClassWithMultipleInterfaceImplementations));
+   }
+
+   public abstract class ClassWithVirtualAndAbstractMethods {
+      public abstract int Method1();
+      public abstract void Method2(int value);
+      public abstract bool Method3(out int number);
+
+      public virtual int Method4() { return 7; }
+      public virtual void Method5(int value) { }
+      public virtual bool Method6(out int number) { number = 6; return true; }
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildClassWithVirtualAndAbstractMethods() => AssertCompile(typeof(ClassWithVirtualAndAbstractMethods));
+   }
+
+   public class ClassWithMultipleVirtualMethodsWithTheSameName {
+      public virtual int Add(int a, int b) { return 0; }
+      protected virtual double Add(double a, double b) => 0;
+      public virtual void Add(string a, string b) { }
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildClassWithMultipleVirtualMethodsWithTheSameName() => AssertCompile(typeof(ClassWithMultipleVirtualMethodsWithTheSameName));
+   }
 }
