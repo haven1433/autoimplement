@@ -61,9 +61,12 @@ namespace HavenSoft.AutoImplement {
       }
 
       public void AppendMethod(MethodInfo info, MemberMetadata metadata) {
-         if(info.IsSpecialName)
          if (info.IsStatic || info.IsPrivate || info.IsAssembly || info.IsFamilyAndAssembly) return;
          if (!info.IsVirtual && !info.IsAbstract) return;
+         if (info.IsGenericMethodDefinition) {
+            AppendGenericMethod(info, metadata);
+            return;
+         }
 
          var access = info.IsFamily ? "protected" : "public";
          var delegateName = GetDelegateName(metadata.ReturnType, metadata.ParameterTypes);
@@ -173,6 +176,60 @@ namespace HavenSoft.AutoImplement {
          writer.Write(helperWriter.ToString());
       }
 
+      /// <summary>
+      /// Normally, making a stub method on a baseclass requires two overrides with the same name.
+      /// An override method, and a new delegate field with the same name.
+      /// But for generic methods, a delegate field with the same name won't work.
+      /// Instead, we have a generic delegate, a dictionary for overrides, a caller for the base method, an "ImplementMember" method, and an override for the method.
+      /// Since all of these have different names, we can put all the overrides in a single class.
+      /// So don't put anything in the helper intermediate class.
+      /// </summary>
+      private void AppendGenericMethod(MethodInfo info, MemberMetadata metadata) {
+         var typesExtension = StubBuilder.SanitizeMethodName(metadata.ParameterTypes);
+         var typeofList = info.GetGenericArguments().Select(type => $"typeof({type.Name})").Aggregate((a, b) => $"{a}, {b}");
+         var createKey = $"var key = new Type[] {{ {typeofList} }};";
+         var returnClause = metadata.ReturnType == "void" ? string.Empty : "return ";
+
+         var delegateName = $"{metadata.Name}Delegate_{typesExtension}{metadata.GenericParameters}";
+         var dictionary = $"{metadata.Name}Delegates_{typesExtension}";
+         var methodName = $"{metadata.Name}{metadata.GenericParameters}";
+
+         var access = info.IsFamily ? "protected" : "public";
+
+         writer.Write($"public delegate {metadata.ReturnType} {delegateName}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints};");
+
+         writer.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>();");
+         writer.Write($"public void Implement{methodName}({delegateName} implementation){metadata.GenericParameterConstraints}");
+         using (writer.Scope) {
+            writer.Write(createKey);
+            writer.Write($"{dictionary}[key] = implementation;");
+         }
+         if (!info.IsAbstract) {
+            writer.Write($"public {metadata.ReturnType} Base{methodName}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints}");
+            using (writer.Scope) {
+               writer.Write($"{returnClause}base.{methodName}({metadata.ParameterNames});");
+            }
+         }
+         writer.Write($"{access} override {metadata.ReturnType} {methodName}({metadata.ParameterTypesAndNames})");
+         using (writer.Scope) {
+            writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
+            writer.Write(createKey);
+            writer.Write("object implementation;");
+            writer.Write($"if ({dictionary}.TryGetValue(key, out implementation))");
+            using (writer.Scope) {
+               writer.Write($"{returnClause}(({delegateName})implementation).Invoke({metadata.ParameterNames});");
+            }
+            writer.Write("else");
+            using (writer.Scope) {
+               if (!info.IsAbstract) {
+                  writer.Write($"{returnClause}Base{methodName}({metadata.ParameterNames});");
+               } else if (metadata.ReturnType != "void") {
+                  writer.Write($"return default({metadata.ReturnType});");
+               }
+            }
+         }
+      }
+
       private void WriteHelperBaseMethod(MethodInfo info, MemberMetadata metadata) {
          var returnClause = metadata.ReturnType != "void" ? "return " : string.Empty;
 
@@ -232,7 +289,7 @@ namespace HavenSoft.AutoImplement {
       }
 
       private void AppendToConstructorFromMethod(MethodInfo info, MemberMetadata metadata) {
-         if (info.IsSpecialName || info.IsStatic || info.IsPrivate || !info.IsVirtual || info.IsAbstract || info.IsAssembly || info.IsFamilyAndAssembly) return;
+         if (info.IsSpecialName || info.IsStatic || info.IsPrivate || !info.IsVirtual || info.IsAbstract || info.IsAssembly || info.IsFamilyAndAssembly || info.IsGenericMethod) return;
          if (info.IsVirtual && info.Name == "Finalize") return; // Finalize is special in C#. Use a destructor instead.
 
          var typesExtension = StubBuilder.SanitizeMethodName(metadata.ParameterTypes);

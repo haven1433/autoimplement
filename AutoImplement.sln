@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoImplement.Tests", "src\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Delegation", "src\System.Delegation\System.Delegation.csproj", "{B77A226F-8CF4-4BF4-9727-CFE4055BCE5A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoImplement.Tests.Types", "src\AutoImplement.Tests.Types\AutoImplement.Tests.Types.csproj", "{2DDE20A3-72FE-484E-9B7D-DE5E641B9811}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{B77A226F-8CF4-4BF4-9727-CFE4055BCE5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B77A226F-8CF4-4BF4-9727-CFE4055BCE5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B77A226F-8CF4-4BF4-9727-CFE4055BCE5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DDE20A3-72FE-484E-9B7D-DE5E641B9811}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DDE20A3-72FE-484E-9B7D-DE5E641B9811}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DDE20A3-72FE-484E-9B7D-DE5E641B9811}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DDE20A3-72FE-484E-9B7D-DE5E641B9811}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

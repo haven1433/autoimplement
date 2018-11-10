@@ -132,4 +132,48 @@ namespace HavenSoft.AutoImplement.Tests {
       [Fact]
       public void CanBuildClassWithMultipleVirtualMethodsWithTheSameName() => AssertCompile(typeof(ClassWithMultipleVirtualMethodsWithTheSameName));
    }
+
+   public class GenericClass<T> {
+      public T SimpleProperty { get; set; }
+      public virtual T SimpleProperty2 { get; set; }
+
+      public void Method1(T value) { }
+      public virtual T Method2(T value) => value;
+
+      public virtual event EventHandler<T> SomeEvent;
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildGenericClass() => AssertCompile(typeof(GenericClass<>));
+   }
+
+   public class GenericClassWithConstraints<T> where T : IDisposable {
+      public virtual void DoStuff() { }
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildGenericClassWithConstraints() => AssertCompile(typeof(GenericClassWithConstraints<>));
+   }
+
+   public class ClassWithGenericMethod {
+      public virtual void DoStuff<T>(T input) { }
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildClassWithGenericMethod() => AssertCompile(typeof(ClassWithGenericMethod));
+   }
+
+   public class ClassWithGenericMethodWithConstraints {
+      public virtual void DoStuff<T>(T input) where T : struct { }
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildClassWithGenericMethodWithConstraints() => AssertCompile(typeof(ClassWithGenericMethodWithConstraints));
+   }
+
+   // TODO deferred constructor test
 }
