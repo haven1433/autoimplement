@@ -22,8 +22,8 @@ namespace HavenSoft.AutoImplement.Tests {
 
          var parameters = new CompilerParameters {
             ReferencedAssemblies = {
-               assemblies.Single(asm => asm.Contains("AutoImplement.Tests")),
-               assemblies.Single(asm => asm.Contains("System.Core")),
+               assemblies.Single(asm => asm.Contains("AutoImplement.Tests.dll")),
+               assemblies.Single(asm => asm.Contains("System.Core.dll")),
                assemblies.Single(asm => asm.Contains("System.dll")),
                new FileInfo("System.Delegation.dll").FullName,
             },
@@ -175,5 +175,12 @@ namespace HavenSoft.AutoImplement.Tests {
       public void CanBuildClassWithGenericMethodWithConstraints() => AssertCompile(typeof(ClassWithGenericMethodWithConstraints));
    }
 
-   // TODO deferred constructor test
+   public class ClassWithConstructor {
+      public ClassWithConstructor(int number) { }
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildClassWithConstructor() => AssertCompile(typeof(ClassWithConstructor));
+   }
 }

@@ -48,9 +48,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\SharedAssemblyInfo.cs">
-      <Link>SharedAssemblyInfo.cs</Link>
-    </Compile>
+    <Compile Include="..\..\artifacts\AutoImplement.Tests\codegen\StubPoorlyImplementedAbstractClass.cs" />
+    <Compile Include="..\SharedAssemblyInfo.cs" />
     <Compile Include="..\..\artifacts\$(AssemblyName)\codegen\StubNotifyPropertyChanged.cs" />
     <Compile Include="ClassCompileTests.cs" />
     <Compile Include="InterfaceCompileTests.cs" />
@@ -66,6 +65,10 @@
     <Analyzer Include="..\..\packages\xunit.analyzers.0.10.0\analyzers\dotnet\cs\xunit.analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AutoImplement.Tests.Types\AutoImplement.Tests.Types.csproj">
+      <Project>{2dde20a3-72fe-484e-9b7d-de5e641b9811}</Project>
+      <Name>AutoImplement.Tests.Types</Name>
+    </ProjectReference>
     <ProjectReference Include="..\AutoImplement\AutoImplement.csproj">
       <Project>{84ede6e7-7098-4f05-9ab8-9ec8fb24cb6d}</Project>
       <Name>AutoImplement</Name>
@@ -89,10 +92,11 @@
   <PropertyGroup>
     <PreBuildEvent>
 $(SolutionDir)artifacts\AutoImplement\bin\$(ConfigurationName)\AutoImplement "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" INotifyPropertyChanged
+$(SolutionDir)artifacts\AutoImplement\bin\$(ConfigurationName)\AutoImplement "$(SolutionDir)artifacts\AutoImplement.Tests.Types\bin\$(ConfigurationName)\AutoImplement.Tests.Types.dll"
 if not exist $(SolutionDir)artifacts\$(AssemblyName)\codegen mkdir $(SolutionDir)artifacts\$(AssemblyName)\codegen
 move /Y StubNotifyPropertyChanged.cs $(SolutionDir)artifacts\$(AssemblyName)\codegen
-del CompositeNotifyPropertyChanged.cs
-del NotifyPropertyChangedDecorator.cs
+move /Y StubPoorlyImplementedAbstractClass.cs $(SolutionDir)artifacts\$(AssemblyName)\codegen
+del *.cs
 </PreBuildEvent>
   </PropertyGroup>
 </Project>

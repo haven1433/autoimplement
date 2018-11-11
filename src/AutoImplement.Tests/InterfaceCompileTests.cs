@@ -79,7 +79,7 @@ namespace HavenSoft.AutoImplement.Tests {
 
          var parameters = new CompilerParameters {
             ReferencedAssemblies = {
-               assemblies.Single(asm => asm.Contains("AutoImplement.Tests")),
+               assemblies.Single(asm => asm.Contains("AutoImplement.Tests.dll")),
                assemblies.Single(asm => asm.Contains("System.Core")),
                new FileInfo("System.Delegation.dll").FullName,
             },
