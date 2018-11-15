@@ -82,7 +82,14 @@ namespace HavenSoft.AutoImplement {
 
       public void AppendMethod(MethodInfo info, MemberMetadata metadata) {
          if (info.IsStatic || info.IsPrivate || info.IsAssembly || info.IsFamilyAndAssembly) return;
-         if (!info.IsVirtual && !info.IsAbstract) return;
+         var returnClause = metadata.ReturnType != "void" ? "return " : string.Empty;
+         if (!info.IsVirtual && !info.IsAbstract) {
+            if (info.IsFamily) {
+               // the member is protected. Make a public version.
+               stubWriter.Write($"public new {metadata.ReturnType} {metadata.Name}{metadata.GenericParameters}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints} {{ {returnClause}base.{metadata.Name}({metadata.ParameterNames}); }}");
+            }
+            return;
+         }
          if (info.IsGenericMethodDefinition) {
             AppendGenericMethod(info, metadata);
             return;
@@ -90,7 +97,6 @@ namespace HavenSoft.AutoImplement {
 
          var access = info.IsFamily ? "protected" : "public";
          var delegateName = GetDelegateName(metadata.ReturnType, metadata.ParameterTypes);
-         var returnClause = metadata.ReturnType != "void" ? "return " : string.Empty;
 
          var typesExtension = StubBuilder.SanitizeMethodName(metadata.ParameterTypes);
 
@@ -113,7 +119,13 @@ namespace HavenSoft.AutoImplement {
       public void AppendEvent(EventInfo info, MemberMetadata metadata) {
          var methodInfo = info.AddMethod;
          if (methodInfo.IsStatic || methodInfo.IsPrivate || methodInfo.IsAssembly || methodInfo.IsFamilyAndAssembly) return;
-         if (!methodInfo.IsVirtual && !methodInfo.IsAbstract) return;
+         if (!methodInfo.IsVirtual && !methodInfo.IsAbstract) {
+            if (methodInfo.IsFamily) {
+               // the member is protected. Make a public version.
+               stubWriter.Write($"public new event {metadata.Name} {{ add {{ base.{metadata.Name} += value; }} remove {{ base.{metadata.Name} -= value; }} }}");
+            }
+            return;
+         }
 
          var access = methodInfo.IsFamily ? "protected" : "public";
 
@@ -134,7 +146,17 @@ namespace HavenSoft.AutoImplement {
       public void AppendProperty(PropertyInfo info, MemberMetadata metadata) {
          var methodInfo = info.GetMethod ?? info.SetMethod;
          if (methodInfo.IsStatic || methodInfo.IsPrivate || methodInfo.IsAssembly || methodInfo.IsFamilyAndAssembly) return;
-         if (!methodInfo.IsVirtual && !methodInfo.IsAbstract) return;
+         if (!methodInfo.IsVirtual && !methodInfo.IsAbstract) {
+            if (methodInfo.IsFamily) {
+               // the member is protected. Make a public version.
+               intermediateWriter.Write($"public new {metadata.ReturnType} {metadata.Name}");
+               using (intermediateWriter.Scope) {
+                  if (info.CanRead) intermediateWriter.Write($"get {{ return base.{metadata.Name}; }}");
+                  if (CanWrite(info)) intermediateWriter.Write($"set {{ base.{metadata.Name} = value; }}");
+               }
+            }
+            return;
+         }
 
          var access = methodInfo.IsFamily ? "protected" : "public";
 
@@ -161,7 +183,17 @@ namespace HavenSoft.AutoImplement {
       public void AppendItemProperty(PropertyInfo info, MemberMetadata metadata) {
          var methodInfo = info.GetMethod ?? info.SetMethod;
          if (methodInfo.IsStatic || methodInfo.IsPrivate || methodInfo.IsAssembly || methodInfo.IsFamilyAndAssembly) return;
-         if (!methodInfo.IsVirtual && !methodInfo.IsAbstract) return;
+         if (!methodInfo.IsVirtual && !methodInfo.IsAbstract) {
+            // the member is protected. Make a public version.
+            if (methodInfo.IsFamily) {
+               intermediateWriter.Write($"public new {metadata.ReturnType} this[{metadata.ParameterTypesAndNames}]");
+               using (intermediateWriter.Scope) {
+                  if (info.CanRead) intermediateWriter.Write($"get {{ return base[{metadata.ParameterNames}]; }}");
+                  if (info.CanWrite) intermediateWriter.Write($"set {{ base[{metadata.ParameterNames}] = value; }}");
+               }
+            }
+            return;
+         }
 
          var access = methodInfo.IsFamily ? "protected" : "public";
 
@@ -218,7 +250,7 @@ namespace HavenSoft.AutoImplement {
 
          stubWriter.Write($"public delegate {metadata.ReturnType} {delegateName}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints};");
 
-         stubWriter.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>();");
+         stubWriter.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>(new EnumerableEqualityComparer<Type>());");
          stubWriter.Write($"public void Implement{methodName}({delegateName} implementation){metadata.GenericParameterConstraints}");
          using (stubWriter.Scope) {
             stubWriter.Write(createKey);

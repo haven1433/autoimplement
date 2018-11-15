@@ -252,7 +252,7 @@ namespace HavenSoft.AutoImplement {
          var methodName = $"{method.Name}{method.GenericParameters}";
 
          writer.Write($"public delegate {method.ReturnType} {delegateName}({method.ParameterTypesAndNames}){method.GenericParameterConstraints};");
-         writer.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>();");
+         writer.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>(new EnumerableEqualityComparer<Type>());");
          writer.Write($"public void Implement{methodName}({delegateName} implementation){method.GenericParameterConstraints}");
          using (writer.Scope) {
             writer.Write(createKey);
