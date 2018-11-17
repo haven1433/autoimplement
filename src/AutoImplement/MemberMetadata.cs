@@ -17,8 +17,7 @@ namespace HavenSoft.AutoImplement {
       public string GenericParameters { get; } = string.Empty;
       public string GenericParameterConstraints { get; } = string.Empty;
 
-      public MemberMetadata(MemberInfo info) {
-         var declaringNamespace = info.DeclaringType.Namespace;
+      public MemberMetadata(MemberInfo info, string declaringNamespace) {
          DeclaringType = info.DeclaringType.CreateCsName(declaringNamespace);
          Name = info.Name;
 

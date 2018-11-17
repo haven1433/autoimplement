@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Windows.Input;
 
 namespace HavenSoft.AutoImplement.Tests {
    public interface IEmptyInterface { }
@@ -59,5 +61,9 @@ namespace HavenSoft.AutoImplement.Tests {
       void DoStuff2<T>(T argument) where T : struct;
       void DoStuff3<T>(T argument) where T : IEnumerable<T>;
       void DoStuff4<T>(T argument) where T : Type;
+   }
+
+   public interface IInterfaceWithBaseEventInterface : INotifyPropertyChanged {
+      ICommand SomeProperty { get; }
    }
 }

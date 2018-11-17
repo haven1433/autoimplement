@@ -170,21 +170,21 @@ namespace HavenSoft.AutoImplement {
       /// Creates a Builder of the given generic type to implement the given interface.
       /// Output is placed in the given fileName.
       /// </summary>
-      private static void GenerateImplementation<TPatternBuilder>(Type interfaceType)
+      private static void GenerateImplementation<TPatternBuilder>(Type type)
       where TPatternBuilder : IPatternBuilder {
          var writer = new CSharpSourceWriter(numberOfSpacesToIndent: 4);
          var builder = (TPatternBuilder)Activator.CreateInstance(typeof(TPatternBuilder), writer);
-         var fileName = builder.GetDesiredOutputFileName(interfaceType);
+         var fileName = builder.GetDesiredOutputFileName(type);
          Console.WriteLine($"Generating {fileName} ...");
 
          writer.Write($"// this file was created by AutoImplement");
-         writer.Write($"namespace {interfaceType.Namespace}");
+         writer.Write($"namespace {type.Namespace}");
          using (writer.Scope) {
-            writer.Write($"public class {builder.ClassDeclaration(interfaceType)}");
+            writer.Write($"public class {builder.ClassDeclaration(type)}");
             using (writer.Scope) {
-               builder.AppendExtraMembers(interfaceType);
-               foreach (var member in FindAllMembers(interfaceType)) {
-                  var metadata = new MemberMetadata(member);
+               builder.AppendExtraMembers(type);
+               foreach (var member in FindAllMembers(type)) {
+                  var metadata = new MemberMetadata(member, type.Namespace);
                   switch (member.MemberType) {
                      case MemberTypes.Method: ImplementMethod(member, metadata, builder); break;
                      case MemberTypes.Event: ImplementEvent(member, metadata, builder); break;

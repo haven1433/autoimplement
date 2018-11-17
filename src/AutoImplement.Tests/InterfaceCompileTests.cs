@@ -63,6 +63,9 @@ namespace HavenSoft.AutoImplement.Tests {
       [Fact]
       public void CanGenerateFromMethodConstraints() => AssertCompile(typeof(IInterfaceWithTypeConstrainedMethods));
 
+      [Fact]
+      public void CanGenerateFromInterfaceWithBaseInterfaceEvents() => AssertCompile(typeof(IInterfaceWithBaseEventInterface));
+
       private static void AssertCompile(Type interfaceType) {
          Program.GenerateImplementations(ThisAssembly, interfaceType.Name);
 
@@ -81,6 +84,7 @@ namespace HavenSoft.AutoImplement.Tests {
             ReferencedAssemblies = {
                assemblies.Single(asm => asm.Contains("AutoImplement.Tests.dll")),
                assemblies.Single(asm => asm.Contains("System.Core")),
+               assemblies.Single(asm => asm.Contains("System.dll")),
                new FileInfo("System.Delegation.dll").FullName,
             },
          };

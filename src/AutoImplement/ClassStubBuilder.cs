@@ -58,7 +58,7 @@ namespace HavenSoft.AutoImplement {
             .Concat(type.GetConstructors(BindingFlags.Instance | BindingFlags.Public));
 
          foreach (var constructor in constructors) {
-            var metadata = new MemberMetadata(constructor);
+            var metadata = new MemberMetadata(constructor, type.Namespace);
             AppendConstructor(type, constructor, metadata);
          }
 
@@ -332,7 +332,7 @@ namespace HavenSoft.AutoImplement {
             using (deferWriter.Scope) {
                deferWriter.Write($"var stub = ({stubTypeName})FormatterServices.GetUninitializedObject(typeof({stubTypeName}));");
                foreach (var member in Program.FindAllMembers(type)) {
-                  var metadata = new MemberMetadata(member);
+                  var metadata = new MemberMetadata(member, type.Namespace);
                   switch (member.MemberType) {
                      case MemberTypes.Method: AppendToConstructorFromMethod((MethodInfo)member, metadata, deferWriter); break;
                      case MemberTypes.Event: AppendToConstructorFromEvent((EventInfo)member, metadata, deferWriter); break;
