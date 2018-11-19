@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HavenSoft.AutoImplement.Tests.Types {
+﻿namespace HavenSoft.AutoImplement.Tests.Types {
    /// <summary>
    /// This class is used by the tests to verify that implementations work as expected.
    /// Each member exists only to show how that member is able to be used.
    /// </summary>
    public abstract class ExampleClass {
+
+      // it should be possible to access this from stub
+      // so it gets wrapped in a public property with the same name.
+      protected int sampleField;
 
       // this member should be left totally alone, since it is public and non-virtual.
       public int CallsToMethod { get; set; }

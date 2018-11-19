@@ -36,13 +36,27 @@ namespace HavenSoft.AutoImplement.Tests {
       /// Even though you can't override it, you can still call it.
       /// </summary>
       [Fact]
-      public void ProtectedMemberUsage() {
+      public void ProtectedMethodUsage() {
          var stub = new StubExampleClass();
          ExampleClass example = stub;
 
          stub.MethodToCall2();
 
          Assert.Equal(1, example.CallsToMethod);
+      }
+
+      /// <summary>
+      /// sampleField is protected on ExampleClass.
+      /// But on the stub, protected fields are exposed through public properties.
+      /// Even though you can't override it, you can get and set it.
+      /// </summary>
+      [Fact]
+      public void ProtectedFieldUsage() {
+         var stub = new StubExampleClass();
+
+         stub.sampleField = 7;
+
+         Assert.Equal(7, stub.sampleField);
       }
 
       /// <summary>

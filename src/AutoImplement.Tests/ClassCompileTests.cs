@@ -183,4 +183,13 @@ namespace HavenSoft.AutoImplement.Tests {
       [Fact]
       public void CanBuildClassWithConstructor() => AssertCompile(typeof(ClassWithConstructor));
    }
+
+   public class ClassWithProtectedField {
+      protected int someNumber;
+   }
+
+   partial class ClassCompileTests {
+      [Fact]
+      public void CanBuildClassWithProtectedFields() => AssertCompile(typeof(ClassWithProtectedField));
+   }
 }

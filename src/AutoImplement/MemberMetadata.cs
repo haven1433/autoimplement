@@ -39,6 +39,8 @@ namespace HavenSoft.AutoImplement {
             HandlerArgsType = eventArgsType.CreateCsName(declaringNamespace);
          } else if (info is ConstructorInfo constructorInfo) {
             (ParameterTypes, ParameterNames, ParameterTypesAndNames) = BuildArgumentLists(constructorInfo.GetParameters());
+         } else if (info is FieldInfo fieldInfo) {
+            ReturnType = fieldInfo.FieldType.CreateCsName(declaringNamespace);
          }
       }
 

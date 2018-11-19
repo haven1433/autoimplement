@@ -54,6 +54,7 @@ namespace HavenSoft.AutoImplement {
       }
 
       public void AppendExtraMembers(Type type) {
+         // add in constructors
          var constructors = type.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
             .Concat(type.GetConstructors(BindingFlags.Instance | BindingFlags.Public));
 
@@ -64,6 +65,14 @@ namespace HavenSoft.AutoImplement {
 
          implementedMethods.Clear();
 
+         // add in fields
+         var protectedFields = type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Where(field => field.IsFamily || field.IsFamilyOrAssembly);
+         foreach (var field in protectedFields) {
+            var metadata = new MemberMetadata(field, type.Namespace);
+            AppendField(type, field, metadata);
+         }
+
+         // add in IDisposable helper class (custom for each class, because it needs to know the stub type).
          stubWriter.Write($"private class ConstructionCompletion : IDisposable");
          using (stubWriter.Scope) {
             stubWriter.Write($"private readonly object target;");
@@ -415,6 +424,14 @@ namespace HavenSoft.AutoImplement {
             deferWriter.Write($"stub.{metadata.Name} = new PropertyImplementation<{metadata.ReturnType}>();");
             if (info.CanRead) deferWriter.Write($"stub.{metadata.Name}.get = () => stub.Base{metadata.Name};");
             if (CanWrite(info)) deferWriter.Write($"stub.{metadata.Name}.set = value => stub.Base{metadata.Name} = value;");
+         }
+      }
+
+      private void AppendField(Type type, FieldInfo info, MemberMetadata metadata) {
+         stubWriter.Write($"public new {metadata.ReturnType} {metadata.Name}");
+         using (stubWriter.Scope) {
+            stubWriter.Write($"get {{ return base.{metadata.Name}; }}");
+            stubWriter.Write($"set {{ base.{metadata.Name} = value; }}");
          }
       }
 
