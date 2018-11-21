@@ -20,7 +20,7 @@ namespace HavenSoft.AutoImplement.Tests {
          var stub = new StubExample();
          IExample example = stub;
 
-         // you can use the operator the same whether the interface has a getter, a setter, or both.
+         // you can use the property the same whether the interface has a getter, a setter, or both.
          stub.PropertyWithGetter = 12;
          stub.PropertyWithGetAndSet = 3.0;
 

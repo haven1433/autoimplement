@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 
 namespace HavenSoft.AutoImplement.Tests.Types {
-   // It's possbile for an abstract class to call an abstract method during the constructor.
+   // It's possible for an abstract class to call an abstract method during the constructor.
    // This is bad practice, because the method comes from an object that hasn't had its constructor run yet.
    // This is because the base-class constructor completes before any subclass constructors are run.
    // For this reason, classes should not call any virtual or abstract members in their constructors.
