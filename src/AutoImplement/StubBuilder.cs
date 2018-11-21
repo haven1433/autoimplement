@@ -245,7 +245,6 @@ namespace HavenSoft.AutoImplement {
          var typesExtension = SanitizeMethodName(method.ParameterTypes);
          var typeofList = info.GetGenericArguments().Select(type => $"typeof({type.Name})").Aggregate((a, b) => $"{a}, {b}");
          var createKey = $"var key = new Type[] {{ {typeofList} }};";
-         var returnClause = method.ReturnType == "void" ? string.Empty : "return ";
 
          var delegateName = $"{method.Name}Delegate_{typesExtension}{method.GenericParameters}";
          var dictionary = $"{method.Name}Delegates_{typesExtension}";
@@ -265,7 +264,7 @@ namespace HavenSoft.AutoImplement {
             writer.Write("object implementation;");
             writer.Write($"if ({dictionary}.TryGetValue(key, out implementation))");
             using (writer.Scope) {
-               writer.Write($"{returnClause}(({delegateName})implementation).Invoke({method.ParameterNames});");
+               writer.Write($"{method.ReturnClause}(({delegateName})implementation).Invoke({method.ParameterNames});");
             }
             if (method.ReturnType != "void") {
                writer.Write("else");
@@ -303,8 +302,7 @@ namespace HavenSoft.AutoImplement {
 
             writer.Write($"if ({call} != null)");
             using (writer.Scope) {
-               var returnClause = method.ReturnType == "void" ? string.Empty : "return ";
-               writer.Write($"{returnClause}{call}({method.ParameterNames});");
+               writer.Write($"{method.ReturnClause}{call}({method.ParameterNames});");
             }
             if (method.ReturnType != "void") {
                writer.Write("else");

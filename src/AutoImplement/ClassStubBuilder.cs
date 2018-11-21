@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -16,14 +17,12 @@ namespace HavenSoft.AutoImplement {
 
       private readonly List<string> implementedMethods = new List<string>();
       private readonly CSharpSourceWriter stubWriter, intermediateWriter;
-      private readonly Stack<IDisposable> helperScopes = new Stack<IDisposable>();
-      private string stubTypeName;
-      private string genericInfo;
-      private string constraints;
+      private IDisposable intermediateClassScope; // Open when the intermediateWriter is in the middle of writing its class.
+      private string stubTypeName, genericInfo, constraints;
 
       public ClassStubBuilder(CSharpSourceWriter writer) {
          // the main writer will write the Stub class, which contains the new members.
-         this.stubWriter = writer;
+         stubWriter = writer;
          writer.WriteUsings(
             "System",                        // Action, Func, Type, IDisposable
             "System.Collections.Generic",    // Dictionary
@@ -31,7 +30,7 @@ namespace HavenSoft.AutoImplement {
             "System.Linq",                   // ConstructionCompletion uses Linq to get the correct constructor.
             "System.Runtime.Serialization"); // FormatterServices
 
-         // the helperWriter will write the intermediate class, which contains the override members.
+         // the intermediateWriter will write the intermediate class, which contains the override members.
          intermediateWriter = new CSharpSourceWriter(writer.Indentation);
       }
 
@@ -47,7 +46,8 @@ namespace HavenSoft.AutoImplement {
          constraints = MemberMetadata.GetGenericParameterConstraints(type.GetGenericArguments(), type.Namespace);
 
          intermediateWriter.Write($"public class IntermediateStub{basename}_DoNotUse{genericInfo} : {typeName}{constraints}");
-         helperScopes.Push(intermediateWriter.Scope);
+         Debug.Assert(intermediateClassScope == null);
+         intermediateClassScope = intermediateWriter.Scope;
          stubTypeName = $"Stub{basename}{genericInfo}";
 
          return $"{stubTypeName} : IntermediateStub{basename}_DoNotUse{genericInfo}{constraints}";
@@ -71,31 +71,17 @@ namespace HavenSoft.AutoImplement {
             var metadata = new MemberMetadata(field, type.Namespace);
             AppendField(type, field, metadata);
          }
-
-         // add in IDisposable helper class (custom for each class, because it needs to know the stub type).
-         stubWriter.Write($"private class ConstructionCompletion : IDisposable");
-         using (stubWriter.Scope) {
-            stubWriter.Write($"private readonly object target;");
-            stubWriter.Write($"private readonly object[] args;");
-            stubWriter.Write($"public ConstructionCompletion({stubTypeName} stub, params object[] args)");
-            using (stubWriter.Scope) {
-               stubWriter.Write($"target = stub;");
-               stubWriter.Write($"this.args = args;");
-            }
-            stubWriter.Write($"public void Dispose()");
-            using (stubWriter.Scope) {
-               stubWriter.Write($"typeof({stubTypeName}).GetConstructor(args.Select(arg => arg.GetType()).ToArray()).Invoke(target, args);");
-            }
-         }
       }
 
       public void AppendMethod(MethodInfo info, MemberMetadata metadata) {
          if (info.IsStatic || info.IsPrivate || info.IsAssembly || info.IsFamilyAndAssembly) return;
-         var returnClause = metadata.ReturnType != "void" ? "return " : string.Empty;
          if (!info.IsVirtual && !info.IsAbstract) {
-            if (info.IsFamily) {
+            if (metadata.Access == "protected") {
                // the member is protected. Make a public version.
-               stubWriter.Write($"public new {metadata.ReturnType} {metadata.Name}{metadata.GenericParameters}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints} {{ {returnClause}base.{metadata.Name}({metadata.ParameterNames}); }}");
+               stubWriter.Write($"public new {metadata.ReturnType} {metadata.Name}{metadata.GenericParameters}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints}");
+               using (stubWriter.Scope) {
+                  stubWriter.Write($"{metadata.ReturnClause}base.{metadata.Name}({metadata.ParameterNames});");
+               }
             }
             return;
          }
@@ -104,7 +90,6 @@ namespace HavenSoft.AutoImplement {
             return;
          }
 
-         var access = info.IsFamily ? "protected" : "public";
          var delegateName = GetDelegateName(metadata.ReturnType, metadata.ParameterTypes);
 
          var typesExtension = StubBuilder.SanitizeMethodName(metadata.ParameterTypes);
@@ -120,7 +105,7 @@ namespace HavenSoft.AutoImplement {
          stubWriter.Write($"public new {delegateName} {localImplementationName};");
 
          WriteHelperBaseMethod(info, metadata);
-         WriteHelperMethod(info, metadata, access, stubTypeName, localImplementationName);
+         WriteHelperMethod(info, metadata, stubTypeName, localImplementationName);
 
          implementedMethods.Add($"{metadata.Name}({metadata.ParameterTypes})");
       }
@@ -129,14 +114,12 @@ namespace HavenSoft.AutoImplement {
          var methodInfo = info.AddMethod;
          if (methodInfo.IsStatic || methodInfo.IsPrivate || methodInfo.IsAssembly || methodInfo.IsFamilyAndAssembly) return;
          if (!methodInfo.IsVirtual && !methodInfo.IsAbstract) {
-            if (methodInfo.IsFamily) {
+            if (metadata.Access == "protected") {
                // the member is protected. Make a public version.
                stubWriter.Write($"public new event {metadata.Name} {{ add {{ base.{metadata.Name} += value; }} remove {{ base.{metadata.Name} -= value; }} }}");
             }
             return;
          }
-
-         var access = methodInfo.IsFamily ? "protected" : "public";
 
          stubWriter.Write($"public new EventImplementation<{metadata.HandlerArgsType}> {metadata.Name};");
 
@@ -145,7 +128,7 @@ namespace HavenSoft.AutoImplement {
             intermediateWriter.Write($"public void Base{metadata.Name}Remove({metadata.HandlerType} e) {{ base.{metadata.Name} -= e; }}");
          }
 
-         intermediateWriter.Write($"{access} override event {metadata.HandlerType} {metadata.Name}");
+         intermediateWriter.Write($"{metadata.Access} override event {metadata.HandlerType} {metadata.Name}");
          using (intermediateWriter.Scope) {
             intermediateWriter.Write($"add {{ (({stubTypeName})this).{metadata.Name}.add(new EventHandler<{metadata.HandlerArgsType}>(value)); }}");
             intermediateWriter.Write($"remove {{ (({stubTypeName})this).{metadata.Name}.remove(new EventHandler<{metadata.HandlerArgsType}>(value)); }}");
@@ -156,7 +139,7 @@ namespace HavenSoft.AutoImplement {
          var methodInfo = info.GetMethod ?? info.SetMethod;
          if (methodInfo.IsStatic || methodInfo.IsPrivate || methodInfo.IsAssembly || methodInfo.IsFamilyAndAssembly) return;
          if (!methodInfo.IsVirtual && !methodInfo.IsAbstract) {
-            if (methodInfo.IsFamily) {
+            if (metadata.Access == "protected") {
                // the member is protected. Make a public version.
                intermediateWriter.Write($"public new {metadata.ReturnType} {metadata.Name}");
                using (intermediateWriter.Scope) {
@@ -166,8 +149,6 @@ namespace HavenSoft.AutoImplement {
             }
             return;
          }
-
-         var access = methodInfo.IsFamily ? "protected" : "public";
 
          stubWriter.Write($"public new PropertyImplementation<{metadata.ReturnType}> {metadata.Name};");
 
@@ -179,7 +160,7 @@ namespace HavenSoft.AutoImplement {
             }
          }
 
-         intermediateWriter.Write($"{access} override {metadata.ReturnType} {metadata.Name}");
+         intermediateWriter.Write($"{metadata.Access} override {metadata.ReturnType} {metadata.Name}");
          using (intermediateWriter.Scope) {
             if (info.CanRead) intermediateWriter.Write($"get {{ return (({stubTypeName})this).{metadata.Name}.get(); }}");
             if (CanWrite(info)) {
@@ -194,7 +175,7 @@ namespace HavenSoft.AutoImplement {
          if (methodInfo.IsStatic || methodInfo.IsPrivate || methodInfo.IsAssembly || methodInfo.IsFamilyAndAssembly) return;
          if (!methodInfo.IsVirtual && !methodInfo.IsAbstract) {
             // the member is protected. Make a public version.
-            if (methodInfo.IsFamily) {
+            if (metadata.Access == "protected") {
                intermediateWriter.Write($"public new {metadata.ReturnType} this[{metadata.ParameterTypesAndNames}]");
                using (intermediateWriter.Scope) {
                   if (info.CanRead) intermediateWriter.Write($"get {{ return base[{metadata.ParameterNames}]; }}");
@@ -203,8 +184,6 @@ namespace HavenSoft.AutoImplement {
             }
             return;
          }
-
-         var access = methodInfo.IsFamily ? "protected" : "public";
 
          if (info.CanRead) stubWriter.Write($"public new Func<{metadata.ParameterTypes}, {metadata.ReturnType}> get_Item;");
          if (info.CanWrite) stubWriter.Write($"public new Action<{metadata.ParameterTypes}, {metadata.ReturnType}> set_Item;");
@@ -224,7 +203,7 @@ namespace HavenSoft.AutoImplement {
             }
          }
 
-         intermediateWriter.Write($"{access} override {metadata.ReturnType} this[{metadata.ParameterTypesAndNames}]");
+         intermediateWriter.Write($"{metadata.Access} override {metadata.ReturnType} this[{metadata.ParameterTypesAndNames}]");
          using (intermediateWriter.Scope) {
             if (info.CanRead) intermediateWriter.Write($"get {{ return (({stubTypeName})this).get_Item({metadata.ParameterNames}); }}");
             if (info.CanWrite) intermediateWriter.Write($"set {{ (({stubTypeName})this).set_Item({metadata.ParameterNames}, value); }}");
@@ -232,7 +211,9 @@ namespace HavenSoft.AutoImplement {
       }
 
       public void BuildCompleted() {
-         while (helperScopes.Count > 0) helperScopes.Pop().Dispose();
+         Debug.Assert(intermediateClassScope != null);
+         intermediateClassScope.Dispose();
+         intermediateClassScope = null;
 
          stubWriter.Write(intermediateWriter.ToString());
       }
@@ -249,13 +230,10 @@ namespace HavenSoft.AutoImplement {
          var typesExtension = StubBuilder.SanitizeMethodName(metadata.ParameterTypes);
          var typeofList = info.GetGenericArguments().Select(type => $"typeof({type.Name})").Aggregate((a, b) => $"{a}, {b}");
          var createKey = $"var key = new Type[] {{ {typeofList} }};";
-         var returnClause = metadata.ReturnType == "void" ? string.Empty : "return ";
 
          var delegateName = $"{metadata.Name}Delegate_{typesExtension}{metadata.GenericParameters}";
          var dictionary = $"{metadata.Name}Delegates_{typesExtension}";
          var methodName = $"{metadata.Name}{metadata.GenericParameters}";
-
-         var access = info.IsFamily ? "protected" : "public";
 
          stubWriter.Write($"public delegate {metadata.ReturnType} {delegateName}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints};");
 
@@ -268,22 +246,22 @@ namespace HavenSoft.AutoImplement {
          if (!info.IsAbstract) {
             stubWriter.Write($"public {metadata.ReturnType} Base{methodName}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints}");
             using (stubWriter.Scope) {
-               stubWriter.Write($"{returnClause}base.{methodName}({metadata.ParameterNames});");
+               stubWriter.Write($"{metadata.ReturnClause}base.{methodName}({metadata.ParameterNames});");
             }
          }
-         stubWriter.Write($"{access} override {metadata.ReturnType} {methodName}({metadata.ParameterTypesAndNames})");
+         stubWriter.Write($"{metadata.Access} override {metadata.ReturnType} {methodName}({metadata.ParameterTypesAndNames})");
          using (stubWriter.Scope) {
             stubWriter.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
             stubWriter.Write(createKey);
             stubWriter.Write("object implementation;");
             stubWriter.Write($"if ({dictionary}.TryGetValue(key, out implementation))");
             using (stubWriter.Scope) {
-               stubWriter.Write($"{returnClause}(({delegateName})implementation).Invoke({metadata.ParameterNames});");
+               stubWriter.Write($"{metadata.ReturnClause}(({delegateName})implementation).Invoke({metadata.ParameterNames});");
             }
             stubWriter.Write("else");
             using (stubWriter.Scope) {
                if (!info.IsAbstract) {
-                  stubWriter.Write($"{returnClause}Base{methodName}({metadata.ParameterNames});");
+                  stubWriter.Write($"{metadata.ReturnClause}Base{methodName}({metadata.ParameterNames});");
                } else if (metadata.ReturnType != "void") {
                   stubWriter.Write($"return default({metadata.ReturnType});");
                }
@@ -292,26 +270,22 @@ namespace HavenSoft.AutoImplement {
       }
 
       private void WriteHelperBaseMethod(MethodInfo info, MemberMetadata metadata) {
-         var returnClause = metadata.ReturnType != "void" ? "return " : string.Empty;
-
          if (info.IsVirtual && !info.IsAbstract) {
             intermediateWriter.Write($"public {metadata.ReturnType} Base{metadata.Name}{metadata.GenericParameterConstraints}({metadata.ParameterTypesAndNames})");
             using (intermediateWriter.Scope) {
-               intermediateWriter.Write($"{returnClause}base.{metadata.Name}({metadata.ParameterNames});");
+               intermediateWriter.Write($"{metadata.ReturnClause}base.{metadata.Name}({metadata.ParameterNames});");
             }
          }
       }
 
-      private void WriteHelperMethod(MethodInfo info, MemberMetadata metadata, string access, string stubTypeName, string localImplementationName) {
-         var returnClause = metadata.ReturnType != "void" ? "return " : string.Empty;
-
-         intermediateWriter.Write($"{access} override {metadata.ReturnType} {metadata.Name}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints}");
+      private void WriteHelperMethod(MethodInfo info, MemberMetadata metadata, string stubTypeName, string localImplementationName) {
+         intermediateWriter.Write($"{metadata.Access} override {metadata.ReturnType} {metadata.Name}({metadata.ParameterTypesAndNames}){metadata.GenericParameterConstraints}");
          using (intermediateWriter.Scope) {
             var call = $"(({stubTypeName})this).{localImplementationName}";
             intermediateWriter.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
             intermediateWriter.Write($"if ({call} != null)");
             using (intermediateWriter.Scope) {
-               intermediateWriter.Write($"{returnClause}{call}({metadata.ParameterNames});");
+               intermediateWriter.Write($"{metadata.ReturnClause}{call}({metadata.ParameterNames});");
             }
             if (metadata.ReturnType != "void") {
                intermediateWriter.Write("else");
@@ -330,7 +304,6 @@ namespace HavenSoft.AutoImplement {
          var stubName = $"Stub{basename}";
 
          // for every constructor, make both a constructor and a static "DeferConstruction" method
-
          var deferWriter = new CSharpSourceWriter(stubWriter.Indentation);
 
          stubWriter.Write($"public {stubName}({constructorMetadata.ParameterTypesAndNames}) : base({constructorMetadata.ParameterNames})");
@@ -339,7 +312,8 @@ namespace HavenSoft.AutoImplement {
          deferWriter.Write($"public static IDisposable DeferConstruction({constructorMetadata.ParameterTypesAndNames}{separator}{outParam})");
          using (stubWriter.Scope) {
             using (deferWriter.Scope) {
-               deferWriter.Write($"var stub = ({stubTypeName})FormatterServices.GetUninitializedObject(typeof({stubTypeName}));");
+               deferWriter.Write($"{stubTypeName} stub;");
+               deferWriter.Write($"var disposable = ConstructionCompletion.CreateObjectWithDeferredConstruction<{stubTypeName}>(out stub{separator}{constructorMetadata.ParameterNames});");
                foreach (var member in Program.FindAllMembers(type)) {
                   var metadata = new MemberMetadata(member, type.Namespace);
                   switch (member.MemberType) {
@@ -353,7 +327,7 @@ namespace HavenSoft.AutoImplement {
                   }
                }
                deferWriter.Write($"uninitializedStub = stub;");
-               deferWriter.Write($"return new ConstructionCompletion(stub{separator}{constructorMetadata.ParameterNames});");
+               deferWriter.Write($"return disposable;");
             }
          }
 
@@ -435,6 +409,10 @@ namespace HavenSoft.AutoImplement {
          }
       }
 
+      /// <summary>
+      /// the access will end in whitespace or be empty.
+      /// This is to prevent a single space from occurring if the accesses match.
+      /// </summary>
       private static string DeduceSetAccess(PropertyInfo info) {
          if (!info.CanRead || !info.CanWrite) return string.Empty;
          if (info.GetMethod.IsPublic && info.SetMethod.IsPublic) return string.Empty;
