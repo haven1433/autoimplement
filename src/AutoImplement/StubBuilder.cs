@@ -23,6 +23,18 @@ namespace HavenSoft.AutoImplement {
             "System.Delegation");         // PropertyImplementation, EventImplementation
       }
 
+      /// <summary>
+      /// When converting type lists into extensions to put on the end of method names,
+      /// we have to sanitize them by removing characters that are illegal in C# member names.
+      /// </summary>
+      public static string SanitizeMethodName(string name) {
+         return name
+            .Replace(", ", "_")
+            .Replace(">", "_")
+            .Replace("<", "_")
+            .Replace(".", "_");
+      }
+
       public string GetDesiredOutputFileName(Type interfaceType) {
          var (mainName, genericInformation) = interfaceType.Name.ExtractImplementationNameParts("`");
          return $"Stub{mainName}{genericInformation}.cs";
@@ -74,7 +86,7 @@ namespace HavenSoft.AutoImplement {
       /// </remarks>
       public void AppendMethod(MethodInfo info, MemberMetadata method) {
          if (info.IsGenericMethodDefinition) {
-            this.AppendGenericMethod(info, method);
+            AppendGenericMethod(info, method);
             return;
          }
 
@@ -209,6 +221,8 @@ namespace HavenSoft.AutoImplement {
          }
       }
 
+      public void BuildCompleted() { }
+
       ///<example>
       ///public delegate void MethodWithGenericInputDelegate_T<T>(T input);
       ///private readonly Dictionary<Type[], object> MethodWithGenericInputDelegates_T = new Dictionary<Type[], object>();
@@ -231,14 +245,13 @@ namespace HavenSoft.AutoImplement {
          var typesExtension = SanitizeMethodName(method.ParameterTypes);
          var typeofList = info.GetGenericArguments().Select(type => $"typeof({type.Name})").Aggregate((a, b) => $"{a}, {b}");
          var createKey = $"var key = new Type[] {{ {typeofList} }};";
-         var returnClause = method.ReturnType == "void" ? string.Empty : "return ";
 
          var delegateName = $"{method.Name}Delegate_{typesExtension}{method.GenericParameters}";
          var dictionary = $"{method.Name}Delegates_{typesExtension}";
          var methodName = $"{method.Name}{method.GenericParameters}";
 
          writer.Write($"public delegate {method.ReturnType} {delegateName}({method.ParameterTypesAndNames}){method.GenericParameterConstraints};");
-         writer.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>();");
+         writer.Write($"private readonly Dictionary<Type[], object> {dictionary} = new Dictionary<Type[], object>(new EnumerableEqualityComparer<Type>());");
          writer.Write($"public void Implement{methodName}({delegateName} implementation){method.GenericParameterConstraints}");
          using (writer.Scope) {
             writer.Write(createKey);
@@ -251,7 +264,7 @@ namespace HavenSoft.AutoImplement {
             writer.Write("object implementation;");
             writer.Write($"if ({dictionary}.TryGetValue(key, out implementation))");
             using (writer.Scope) {
-               writer.Write($"{returnClause}(({delegateName})implementation).Invoke({method.ParameterNames});");
+               writer.Write($"{method.ReturnClause}(({delegateName})implementation).Invoke({method.ParameterNames});");
             }
             if (method.ReturnType != "void") {
                writer.Write("else");
@@ -280,18 +293,6 @@ namespace HavenSoft.AutoImplement {
          return returnType == "void" ? string.Empty : $"default({returnType});";
       }
 
-      /// <summary>
-      /// When converting type lists into extensions to put on the end of method names,
-      /// we have to sanitize them by removing characters that are illegal in C# member names.
-      /// </summary>
-      private static string SanitizeMethodName(string name) {
-         return name
-            .Replace(", ", "_")
-            .Replace(">", "_")
-            .Replace("<", "_")
-            .Replace(".", "_");
-      }
-
       private void ImplementInterfaceMethod(MethodInfo info, string localImplementationName, MemberMetadata method) {
          var call = $"this.{localImplementationName}";
 
@@ -301,8 +302,7 @@ namespace HavenSoft.AutoImplement {
 
             writer.Write($"if ({call} != null)");
             using (writer.Scope) {
-               var returnClause = method.ReturnType == "void" ? string.Empty : "return ";
-               writer.Write($"{returnClause}{call}({method.ParameterNames});");
+               writer.Write($"{method.ReturnClause}{call}({method.ParameterNames});");
             }
             if (method.ReturnType != "void") {
                writer.Write("else");

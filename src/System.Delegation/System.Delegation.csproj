@@ -29,8 +29,10 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="ConstructionCompletion.cs" />
     <Compile Include="EventImplementation.cs" />
     <Compile Include="PropertyImplementation.cs" />
+    <Compile Include="TypeArrayEqualityComparer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

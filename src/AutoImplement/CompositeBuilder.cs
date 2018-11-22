@@ -51,7 +51,7 @@ namespace HavenSoft.AutoImplement {
          // Use an explicit implementation only if the signature has already been used
          // example: IEnumerable<T>, which extends IEnumerable
          if (!implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
-            writer.Write($"public {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames}){method.GenericParameterConstraints}");
+            writer.Write($"public virtual {method.ReturnType} {method.Name}{method.GenericParameters}({method.ParameterTypesAndNames}){method.GenericParameterConstraints}");
          } else {
             writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames}){method.GenericParameterConstraints}");
          }
@@ -100,7 +100,7 @@ namespace HavenSoft.AutoImplement {
       /// In this case, the most appropriate action is just to forward the notification down to the contained items.
       /// </remarks>
       public void AppendEvent(EventInfo info, MemberMetadata eventData) {
-         writer.Write($"public event {eventData.HandlerType} {eventData.Name}");
+         writer.Write($"public virtual event {eventData.HandlerType} {eventData.Name}");
          using (writer.Scope) {
             writer.Write("add");
             using (writer.Scope) {
@@ -133,7 +133,7 @@ namespace HavenSoft.AutoImplement {
       /// Set accessors work fine for Composites: just set the property for each item in the composite.
       /// </remarks>
       public void AppendProperty(PropertyInfo info, MemberMetadata property) {
-         writer.Write($"public {property.ReturnType} {property.Name}");
+         writer.Write($"public virtual {property.ReturnType} {property.Name}");
          AppendPropertyCommon(info, property, $"listItem.{ property.Name}");
       }
 
@@ -142,9 +142,11 @@ namespace HavenSoft.AutoImplement {
       /// However, for composites, they're much the same as normal propreties.
       /// </remarks>
       public void AppendItemProperty(PropertyInfo info, MemberMetadata property) {
-         writer.Write($"public {property.ReturnType} this[{property.ParameterTypesAndNames}]");
+         writer.Write($"public virtual {property.ReturnType} this[{property.ParameterTypesAndNames}]");
          AppendPropertyCommon(info, property, $"listItem[{property.ParameterNames}]");
       }
+
+      public void BuildCompleted() { }
 
       private void AppendPropertyCommon(PropertyInfo info, MemberMetadata property, string listItem) {
          using (writer.Scope) {

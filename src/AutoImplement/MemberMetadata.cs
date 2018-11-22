@@ -8,6 +8,7 @@ namespace HavenSoft.AutoImplement {
    public class MemberMetadata {
       public string DeclaringType { get; }
       public string Name { get; }
+
       public string ReturnType { get; }
       public string HandlerType { get; }
       public string HandlerArgsType { get; }
@@ -16,15 +17,17 @@ namespace HavenSoft.AutoImplement {
       public string ParameterTypesAndNames { get; }
       public string GenericParameters { get; } = string.Empty;
       public string GenericParameterConstraints { get; } = string.Empty;
+      public string ReturnClause { get; } = string.Empty;
+      public string Access { get; }
 
-      public MemberMetadata(MemberInfo info) {
-         var declaringNamespace = info.DeclaringType.Namespace;
+      public MemberMetadata(MemberInfo info, string declaringNamespace) {
          DeclaringType = info.DeclaringType.CreateCsName(declaringNamespace);
          Name = info.Name;
 
          if (info is MethodInfo methodInfo) {
             ReturnType = methodInfo.ReturnType.CreateCsName(declaringNamespace);
             (ParameterTypes, ParameterNames, ParameterTypesAndNames) = BuildArgumentLists(methodInfo.GetParameters());
+            Access = GetAccess(methodInfo);
             if (methodInfo.IsGenericMethodDefinition) {
                GenericParameters = GetGenericParamterList(methodInfo);
                GenericParameterConstraints = GetGenericParameterConstraints(methodInfo.GetGenericArguments(), declaringNamespace);
@@ -32,13 +35,27 @@ namespace HavenSoft.AutoImplement {
          } else if (info is PropertyInfo propertyInfo) {
             ReturnType = propertyInfo.PropertyType.CreateCsName(declaringNamespace);
             var paramList = propertyInfo.GetIndexParameters();
+            Access = GetAccess(propertyInfo.GetMethod ?? propertyInfo.SetMethod);
             (ParameterTypes, ParameterNames, ParameterTypesAndNames) = BuildArgumentLists(paramList);
          } else if (info is EventInfo eventInfo) {
             HandlerType = eventInfo.EventHandlerType.CreateCsName(declaringNamespace);
             var eventSignature = eventInfo.EventHandlerType.GetMethod("Invoke");
             var eventArgsType = eventSignature.GetParameters()[1].ParameterType;
             HandlerArgsType = eventArgsType.CreateCsName(declaringNamespace);
+            Access = GetAccess(eventInfo.AddMethod);
+         } else if (info is ConstructorInfo constructorInfo) {
+            (ParameterTypes, ParameterNames, ParameterTypesAndNames) = BuildArgumentLists(constructorInfo.GetParameters());
+            Access = GetAccess(constructorInfo);
+         } else if (info is FieldInfo fieldInfo) {
+            ReturnType = fieldInfo.FieldType.CreateCsName(declaringNamespace);
+            Access = "<DO_NOT_USE>";
          }
+
+         if (ReturnType != "void") ReturnClause = "return ";
+      }
+
+      private static string GetAccess(MethodBase info) {
+         return info.IsFamily || info.IsFamilyOrAssembly ? "protected" : "public";
       }
 
       /// <example>

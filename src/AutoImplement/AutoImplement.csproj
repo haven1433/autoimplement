@@ -36,6 +36,7 @@
     <Compile Include="..\SharedAssemblyInfo.cs">
       <Link>SharedAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="ClassStubBuilder.cs" />
     <Compile Include="CompositeBuilder.cs" />
     <Compile Include="CSharpSourceWriter.cs" />
     <Compile Include="DecoratorBuilder.cs" />

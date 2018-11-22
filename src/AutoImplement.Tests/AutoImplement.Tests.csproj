@@ -1,14 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\..\packages\xunit.runner.visualstudio.2.4.0\build\net20\xunit.runner.visualstudio.props" Condition="Exists('..\..\packages\xunit.runner.visualstudio.2.4.0\build\net20\xunit.runner.visualstudio.props')" />
+  <Import Project="..\..\packages\xunit.runner.visualstudio.2.4.1\build\net20\xunit.runner.visualstudio.props" Condition="Exists('..\..\packages\xunit.runner.visualstudio.2.4.1\build\net20\xunit.runner.visualstudio.props')" />
   <Import Project="..\..\packages\xunit.core.2.4.0\build\xunit.core.props" Condition="Exists('..\..\packages\xunit.core.2.4.0\build\xunit.core.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{61F50AB9-CCB2-4E38-8EB3-61C80DD85F61}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AutoImplement.Tests</RootNamespace>
+    <RootNamespace>HavenSoft.AutoImplement.Tests</RootNamespace>
     <AssemblyName>AutoImplement.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -22,6 +21,8 @@
     <IntermediateOutputPath>..\..\artifacts\$(AssemblyName)\obj\$(Configuration)\</IntermediateOutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -49,13 +50,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\SharedAssemblyInfo.cs">
-      <Link>SharedAssemblyInfo.cs</Link>
-    </Compile>
+    <Compile Include="..\SharedAssemblyInfo.cs" />
+    <Compile Include="..\..\artifacts\$(AssemblyName)\codegen\StubExample.cs" />
+    <Compile Include="..\..\artifacts\$(AssemblyName)\codegen\StubExampleClass.cs" />
+    <Compile Include="..\..\artifacts\$(AssemblyName)\codegen\StubPoorlyImplementedAbstractClass.cs" />
     <Compile Include="..\..\artifacts\$(AssemblyName)\codegen\StubNotifyPropertyChanged.cs" />
-    <Compile Include="CompileTests.cs" />
-    <Compile Include="FunctionalTests.cs" />
+    <Compile Include="ClassCompileTests.cs" />
+    <Compile Include="ClassStubUsageTests.cs" />
+    <Compile Include="InterfaceCompileTests.cs" />
+    <Compile Include="FrameworkTests.cs" />
     <Compile Include="TestInterfaces.cs" />
+    <Compile Include="InterfaceStubUsageTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
@@ -66,6 +71,10 @@
     <Analyzer Include="..\..\packages\xunit.analyzers.0.10.0\analyzers\dotnet\cs\xunit.analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AutoImplement.Tests.Types\AutoImplement.Tests.Types.csproj">
+      <Project>{2dde20a3-72fe-484e-9b7d-de5e641b9811}</Project>
+      <Name>AutoImplement.Tests.Types</Name>
+    </ProjectReference>
     <ProjectReference Include="..\AutoImplement\AutoImplement.csproj">
       <Project>{84ede6e7-7098-4f05-9ab8-9ec8fb24cb6d}</Project>
       <Name>AutoImplement</Name>
@@ -83,16 +92,19 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\..\packages\xunit.core.2.4.0\build\xunit.core.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\xunit.core.2.4.0\build\xunit.core.props'))" />
     <Error Condition="!Exists('..\..\packages\xunit.core.2.4.0\build\xunit.core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\xunit.core.2.4.0\build\xunit.core.targets'))" />
-    <Error Condition="!Exists('..\..\packages\xunit.runner.visualstudio.2.4.0\build\net20\xunit.runner.visualstudio.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\xunit.runner.visualstudio.2.4.0\build\net20\xunit.runner.visualstudio.props'))" />
+    <Error Condition="!Exists('..\..\packages\xunit.runner.visualstudio.2.4.1\build\net20\xunit.runner.visualstudio.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\xunit.runner.visualstudio.2.4.1\build\net20\xunit.runner.visualstudio.props'))" />
   </Target>
   <Import Project="..\..\packages\xunit.core.2.4.0\build\xunit.core.targets" Condition="Exists('..\..\packages\xunit.core.2.4.0\build\xunit.core.targets')" />
   <PropertyGroup>
     <PreBuildEvent>
 $(SolutionDir)artifacts\AutoImplement\bin\$(ConfigurationName)\AutoImplement "System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" INotifyPropertyChanged
+$(SolutionDir)artifacts\AutoImplement\bin\$(ConfigurationName)\AutoImplement "$(SolutionDir)artifacts\AutoImplement.Tests.Types\bin\$(ConfigurationName)\AutoImplement.Tests.Types.dll"
 if not exist $(SolutionDir)artifacts\$(AssemblyName)\codegen mkdir $(SolutionDir)artifacts\$(AssemblyName)\codegen
 move /Y StubNotifyPropertyChanged.cs $(SolutionDir)artifacts\$(AssemblyName)\codegen
-del CompositeNotifyPropertyChanged.cs
-del NotifyPropertyChangedDecorator.cs
+move /Y StubPoorlyImplementedAbstractClass.cs $(SolutionDir)artifacts\$(AssemblyName)\codegen
+move /Y StubExample.cs $(SolutionDir)artifacts\$(AssemblyName)\codegen
+move /Y StubExampleClass.cs $(SolutionDir)artifacts\$(AssemblyName)\codegen
+del *.cs
 </PreBuildEvent>
   </PropertyGroup>
 </Project>

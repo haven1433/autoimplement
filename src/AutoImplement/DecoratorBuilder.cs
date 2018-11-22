@@ -59,8 +59,6 @@ namespace HavenSoft.AutoImplement {
       /// The idea is that a decorator that derives from a generated baseclass should contain no glue code.
       /// </remarks>
       public void AppendMethod(MethodInfo info, MemberMetadata method) {
-         var returnClause = method.ReturnType == "void" ? string.Empty : "return ";
-
          // Use an explicit implementation only if the signature has already been used
          // example: IEnumerable<T>, which extends IEnumerable
          // since expicit implementation can't be virtual, have the explicit one call the normal one.
@@ -71,7 +69,7 @@ namespace HavenSoft.AutoImplement {
          if (implementedMethods.Any(name => name == $"{method.Name}({method.ParameterTypes})")) {
             writer.Write($"{method.ReturnType} {method.DeclaringType}.{method.Name}{method.GenericParameters}({method.ParameterTypesAndNames}){method.GenericParameterConstraints}");
             using (writer.Scope) {
-               writer.Write($"{returnClause}{method.Name}({method.ParameterNames});");
+               writer.Write($"{method.ReturnClause}{method.Name}({method.ParameterNames});");
             }
             return;
          }
@@ -80,9 +78,9 @@ namespace HavenSoft.AutoImplement {
          using (writer.Scope) {
             writer.AssignDefaultValuesToOutParameters(info.DeclaringType.Namespace, info.GetParameters());
 
-            IfHasInnerObject($"{returnClause}{innerObject}.{method.Name}{method.GenericParameters}({method.ParameterNames});");
+            IfHasInnerObject($"{method.ReturnClause}{innerObject}.{method.Name}{method.GenericParameters}({method.ParameterNames});");
 
-            if (returnClause != string.Empty) {
+            if (method.ReturnType != "void") {
                writer.Write($"return default({method.ReturnType});");
             }
          }
@@ -156,6 +154,8 @@ namespace HavenSoft.AutoImplement {
          writer.Write($"public virtual {property.ReturnType} this[{property.ParameterTypesAndNames}]");
          AppendPropertyCommon(info, property, $"{innerObject}[{property.ParameterNames}]");
       }
+
+      public void BuildCompleted() { }
 
       private void AppendPropertyCommon(PropertyInfo info, MemberMetadata property, string member) {
          using (writer.Scope) {
