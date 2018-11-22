@@ -30,7 +30,7 @@ namespace HavenSoft.AutoImplement {
          }
 
          if (typeNames.Length == 0) {
-            typeNames = assembly.ExportedTypes.Where(type => !type.IsValueType && !type.IsSubclassOf(typeof(Delegate))).Select(type => type.FullName).ToArray();
+            typeNames = assembly.ExportedTypes.Where(type => !type.IsSealed && !type.IsSubclassOf(typeof(Delegate))).Select(type => type.FullName).ToArray();
          }
 
          GenerateImplementations(assembly, typeNames);
