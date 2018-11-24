@@ -64,7 +64,7 @@ I don't know who this quote is attributed to, and it may not be entirely true. B
 
 Many such design patterns have become so common and used so frequently that they have evolved into language features and framework components. For example, the Iterator Pattern now has built-in language support in languages like C# and Java, and C# formalizes the Command Pattern through the `System.Windows.Input.ICommand` interface. Lazy instantiation is supported through `System.Lazy`, and the Prototype Pattern is supported through `System.Object.MemberwiseClone`. The framework goes so far as to provide default useful implementations of `Equals` and `GetHashCode` for value types.
 
-There are many other design patterns that the framework and language provide no support for at all. Some of them, like the Adapter and Builder Patterns, share little resemblance each time you see them. Other patterns are almost identical every time. The intention of this utility is to provide implementations of those simpler patterns through code generation. Ideally I would write an entirely new language that included these patterns as features. However, since I am not a language designer, I lean on code generation as a cruch and hope that other developers can add these to .net languages in the future.
+There are many other design patterns that the framework and language provide no support for at all. Some of them, like the Adapter and Builder Patterns, share little resemblance each time you see them. Other patterns are almost identical every time. The intention of this utility is to provide implementations of those simpler patterns through code generation. Ideally I would write an entirely new language that included these patterns as features. However, since I am not a language designer, I lean on code generation as a crutch and hope that other developers can add these to .net languages in the future.
 
 # The Patterns
 
@@ -81,13 +81,13 @@ In general, you use a Stub to replace a full object when the full object is not 
 
 ### Example 1: ICommand
 
-Consider `System.Windows.Input.ICommand`. WPF uses commands regularily, and provids a special implementation of ICommand called `RoutedCommand` that it uses heavily. But despite this specialized implementation, most WPF types are designed to accept any implementation of `ICommand`.
+Consider `System.Windows.Input.ICommand`. WPF uses commands regularly, and provids a special implementation of ICommand called `RoutedCommand` that it uses heavily. But despite this specialized implementation, most WPF types are designed to accept any implementation of `ICommand`.
 
-One possible use of `ICommand` is to provide an implementation for a `Button`. When the `Button` is clicked, it can either call a `Clicked` event handler (usually implemented inside a UserControl that ownes the `Button`), or it can call the `Execute` method on an `ICommand` (usually part of a ViewModel, allowing for a better separation between the UI and the business logic). `ICommand.CanExecute` gets called to check if the `Button` should even be enabled, and the `ICommand` provides an event handler called `CanExecuteChanged` that the Button will automatically listen to in order to determine when to check `CanExecute` again.
+One possible use of `ICommand` is to provide an implementation for a `Button`. When the `Button` is clicked, it can either call a `Clicked` event handler (usually implemented inside a UserControl that owns the `Button`), or it can call the `Execute` method on an `ICommand` (usually part of a ViewModel, allowing for a better separation between the UI and the business logic). `ICommand.CanExecute` gets called to check if the `Button` should even be enabled, and the `ICommand` provides an event handler called `CanExecuteChanged` that the Button will automatically listen to in order to determine when to check `CanExecute` again.
 
 Overall, this is all very well designed. However, if your application needs many commands, you'll need to create a new implementation of `ICommand` for every command you need. This can cause an explosion of types in your assembly, or worse, it can cause extremely complex dependency scenarios if several of your commands use the same data.
 
-At some point, you decide to make a reusabe Command, one that accepts delegates in the constructor or as properties, and then calls those delegates as implementations for `CanExecute` and `Execute`. It probably also has a method called `RaiseCanExecuteChanged` to allow the owner of the object to raise the event when needed. Maybe you name this class `DelegateCommand` or `RelayCommand`. Searching the internet will give you exactly these names, along with implementations from other people who felt this was useful enough to share.
+At some point, you decide to make a reusable Command, one that accepts delegates in the constructor or as properties, and then calls those delegates as implementations for `CanExecute` and `Execute`. It probably also has a method called `RaiseCanExecuteChanged` to allow the owner of the object to raise the event when needed. Maybe you name this class `DelegateCommand` or `RelayCommand`. Searching the internet will give you exactly these names, along with implementations from other people who felt this was useful enough to share.
 
 Congratulations! You've just created a Stub. `IDisposable` and `IComparer<>` are other common .Net interfaces where developers commonly want a Stub in real code. You likely have small interfaces of your own, or small interfaces in common frameworks or tools that you use, and having automatic Stubs for these can help keep related code close together.
 
@@ -149,7 +149,7 @@ public class MyDisposable : IDisposable {
 }
 ```
 
-This creates a method with a special name that can only be accessed by casting to the interface type. This is normally a disadvantage, but it has one very important advantage that comes with it: it allows the type to have a *different* member with the same name. AutoImplement takes advantage of this feature by creating members that can behave very similarily to the interface members, but with some extra functionality.
+This creates a method with a special name that can only be accessed by casting to the interface type. This is normally a disadvantage, but it has one very important advantage that comes with it: it allows the type to have a *different* member with the same name. AutoImplement takes advantage of this feature by creating members that can behave very similarly to the interface members, but with some extra functionality.
 
 Throughout the rest of this section, we'll share the implementation details for the Stubs various types of members. In each case, calling the interface members just forwards to the Stub's members.
 
@@ -168,7 +168,7 @@ public interface IMaxFinder {
 
 the first delegate property of `StubMaxFinder` would be name `Max`, while the second would be named `Max_double_double`.
 
-.Net provides the `Action<>` and `Func<>` delegate types, and AutoImplement uses those where possible. However, if a method has `out` or `ref` parameters, AutoImplement must create a custom delegate for the method. If this is the case, then the custom delegate type will be named based on the method name and the parameter types, ignoring the out/ref modifiers since you cannot create two methods with the same signature with only the modifiers changed. For example, a method like `bool TryThing(string input, out IDisposable result)` in an interface would result in a delegate `public bool TryThingDelegate_string_System_IDisposable(string input, out IDisposable result)`. The delegate would be placed inside the Stub class and used by a property named `TryThing_string_System_IDisposable`. The name of this delegate will almost never be important, but it's there if you need to cast to it. More likey, you'll only need to know the name of the property, which always has the parameters types appended in the case of methods with `ref` or `out` parameters.
+.Net provides the `Action<>` and `Func<>` delegate types, and AutoImplement uses those where possible. However, if a method has `out` or `ref` parameters, AutoImplement must create a custom delegate for the method. If this is the case, then the custom delegate type will be named based on the method name and the parameter types, ignoring the out/ref modifiers since you cannot create two methods with the same signature with only the modifiers changed. For example, a method like `bool TryThing(string input, out IDisposable result)` in an interface would result in a delegate `public bool TryThingDelegate_string_System_IDisposable(string input, out IDisposable result)`. The delegate would be placed inside the Stub class and used by a property named `TryThing_string_System_IDisposable`. The name of this delegate will almost never be important, but it's there if you need to cast to it. More likely, you'll only need to know the name of the property, which always has the parameters types appended in the case of methods with `ref` or `out` parameters.
 
 ### Generic Methods are still methods, and are given a helper method to set implementations.
 
@@ -239,7 +239,7 @@ stub.PropertyChanged += (sender, e) => DoAnotherThing(); // DoAnotherThing is no
 stub.PropertyChanged.Invoke(this, new PropertyChangedEventArgs("SomeProperty"));
 ```
 
-As mentioned, custom classes found online such as DelegateCommand or RelayCommand might have a special method called "RaiseCanExecuteChnaged" that has the same behavior as `EventImplemenation`'s `Invoke` method. Invoke was chosen to help make the stub's member behave closer to how delegates behave in the rest of .Net.
+As mentioned, custom classes found online such as DelegateCommand or RelayCommand might have a special method called "RaiseCanExecuteChanged" that has the same behavior as `EventImplemenation`'s `Invoke` method. Invoke was chosen to help make the stub's member behave closer to how delegates behave in the rest of .Net.
 
 ## Decorator
 
@@ -255,7 +255,7 @@ That's where AutoImplement comes in. AutoImplement can provide automatic decorat
 
 ### Example 1: Logging
 
-One example that's often used in Aspect Oriented programming is a Logging feature. Often, adding logging doesn't mean adding any new members. But it does mean changing several existing members. This sort of cross-cutting concern can be solved in languages without aspects by imploying Decorators.
+One example that's often used in Aspect Oriented programming is a Logging feature. Often, adding logging doesn't mean adding any new members. But it does mean changing several existing members. This sort of cross-cutting concern can be solved in languages without aspects by employing Decorators.
 
 For example, I might want the ability to log whenever a disposable goes out of scope. After running `AutoImplement <mscorelib GAC full name> IDisposable` and pulling in the generated Decorator, I could write the following:
 
@@ -281,11 +281,11 @@ Now you decide that you want the ability to put a simple border around any of th
 
 ### protected IThing InnerThing
 
-Each Decorator created by AutoImplement provides a protected property named similarily to the interface. For example, running AutoImplement on `ICommand` would create a decorator type named `CommandDecorator` with a protected property of type `ICommand` named `InnerCommand`. All the virtual methods in the generated decorator just forward to that `InnnerCommand` if it's not null.
+Each Decorator created by AutoImplement provides a protected property named similarly to the interface. For example, running AutoImplement on `ICommand` would create a decorator type named `CommandDecorator` with a protected property of type `ICommand` named `InnerCommand`. All the virtual methods in the generated decorator just forward to that `InnnerCommand` if it's not null.
 
 ### virtual methods
 
-Every method, property, and event in the interface is given a virtual implementation that calles the Inner*Thing*. You can override it to provide custom behavior, or leave it alone with confidence that the Inner*Thing*'s implementation will be run.
+Every method, property, and event in the interface is given a virtual implementation that calls the Inner*Thing*. You can override it to provide custom behavior, or leave it alone with confidence that the Inner*Thing*'s implementation will be run.
 
 The exception to this is if the interface implements another interface with a conflicting member. For example, `IEnumerable<>` implements `IEnumerable`, which means that an `EnumerableDecorator` would need to implement both `GetEnumerator()` and `GetEnumerator()`. Since these members are only distinguished by their return value, explicit interface implementation must be used for at least one... and explicit implementations cannot be virtual. Because of this restriction, AutoImplement will create a virtual implementation for the most derived version, and have all less derived versions call the more derived version. This will usually be correct. In the case that it is not, it's still possible to create an explicit interface implementation in your leaf class that provides different behavior for the less-derived version of the method. But if you find yourself in that situation, you may consider rethinking your interface inheritance chain.
 
