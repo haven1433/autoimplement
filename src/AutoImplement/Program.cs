@@ -77,7 +77,7 @@ namespace HavenSoft.AutoImplement {
 
       private static void PrintUsageInformation() {
          Console.WriteLine("Expected usage: AutoImplement <assembly> <type> <type> <type> ...");
-         Console.WriteLine("If no types are included, implementatiosn will be created for every public interface.");
+         Console.WriteLine("If no types are included, implementations will be created for every public interface.");
          Console.WriteLine("Example usage:");
          Console.WriteLine("   AutoImplement \"mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089\" IDisposable");
          Console.WriteLine("   AutoImplement path/to/my/assembly.dll IMyType");
