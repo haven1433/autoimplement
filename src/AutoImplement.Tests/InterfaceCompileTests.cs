@@ -66,6 +66,9 @@ namespace HavenSoft.AutoImplement.Tests {
       [Fact]
       public void CanGenerateFromInterfaceWithBaseInterfaceEvents() => AssertCompile(typeof(IInterfaceWithBaseEventInterface));
 
+      [Fact]
+      public void CanGenerateFromInterfaceThatOverridesProperty() => AssertCompile(typeof(IInterfaceThatOverridesProperty));
+
       private static void AssertCompile(Type interfaceType) {
          Program.GenerateImplementations(ThisAssembly, interfaceType.Name);
 

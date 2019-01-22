@@ -66,4 +66,9 @@ namespace HavenSoft.AutoImplement.Tests {
    public interface IInterfaceWithBaseEventInterface : INotifyPropertyChanged {
       ICommand SomeProperty { get; }
    }
+
+   public interface IInterfaceThatOverridesProperty : IReadOnlyList<int> {
+      new int this[int index] { get; set; }
+      new int Count { get; set; }
+   }
 }

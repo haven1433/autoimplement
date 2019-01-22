@@ -6,6 +6,7 @@ using System.Reflection;
 namespace HavenSoft.AutoImplement {
    public class CompositeBuilder : IPatternBuilder {
       private readonly List<string> implementedMethods = new List<string>();
+      private readonly List<string> implementedProperties = new List<string>();
 
       private readonly CSharpSourceWriter writer;
 
@@ -133,8 +134,25 @@ namespace HavenSoft.AutoImplement {
       /// Set accessors work fine for Composites: just set the property for each item in the composite.
       /// </remarks>
       public void AppendProperty(PropertyInfo info, MemberMetadata property) {
+         // Use an explicit implementation only if the signature has already been used
+         // example: an interface may implement both IList<T> and IReadOnlyList<T>, which both provide this[int]
+         // since expicit implementation can't be virtual, have the explicit one call the normal one.
+         // In the case of IList<T> and IReadOnlyList<T>, this is correct.
+         // Hopefully there aren't too many interfaces that do this, cuz it's WEIRD.
+         // When it does happen, hopefully the creator of the child interface wants the child to behave as the parent...
+         // in which case this is the correct implementation.
+         if (implementedProperties.Contains(property.Name)) {
+            writer.Write($"{property.ReturnType} {property.DeclaringType}.{property.Name}");
+            using (writer.Scope) {
+               if (info.GetMethod != null) writer.Write($"get {{ return this.{property.Name}; }}");
+               if (info.SetMethod != null) writer.Write($"set {{ this.{property.Name} = value; }}");
+            }
+            return;
+         }
+
          writer.Write($"public virtual {property.ReturnType} {property.Name}");
          AppendPropertyCommon(info, property, $"listItem.{ property.Name}");
+         implementedProperties.Add(property.Name);
       }
 
       /// <remarks>
@@ -142,8 +160,25 @@ namespace HavenSoft.AutoImplement {
       /// However, for composites, they're much the same as normal propreties.
       /// </remarks>
       public void AppendItemProperty(PropertyInfo info, MemberMetadata property) {
+         // Use an explicit implementation only if the signature has already been used
+         // example: an interface may implement both IList<T> and IReadOnlyList<T>, which both provide this[int]
+         // since expicit implementation can't be virtual, have the explicit one call the normal one.
+         // In the case of IList<T> and IReadOnlyList<T>, this is correct.
+         // Hopefully there aren't too many interfaces that do this, cuz it's WEIRD.
+         // When it does happen, hopefully the creator of the child interface wants the child to behave as the parent...
+         // in which case this is the correct implementation.
+         if (implementedProperties.Contains(property.Name)) {
+            writer.Write($"{property.ReturnType} {property.DeclaringType}.this[{property.ParameterTypesAndNames}]");
+            using (writer.Scope) {
+               if (info.GetMethod != null) writer.Write($"get {{ return this[{property.ParameterNames}]; }}");
+               if (info.SetMethod != null) writer.Write($"set {{ this[{property.ParameterNames}] = value; }}");
+            }
+            return;
+         }
+
          writer.Write($"public virtual {property.ReturnType} this[{property.ParameterTypesAndNames}]");
          AppendPropertyCommon(info, property, $"listItem[{property.ParameterNames}]");
+         implementedProperties.Add(property.Name);
       }
 
       public void BuildCompleted() { }
