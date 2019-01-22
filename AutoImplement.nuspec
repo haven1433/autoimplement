@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>HavenSoft.AutoImplement</id>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <authors>Benjamin Popp</authors>
     <owners>bpopp</owners>
     <licenseUrl>https://github.com/haven1433/autoimplement/blob/master/LICENSE</licenseUrl>
@@ -17,9 +17,9 @@
     <summary>
       Provide automatic implementations for Stubs, Decorators, and Composites.
     </summary>
-    <releaseNotes>Added support for stubs for classes. Improved stub support for generic methods.</releaseNotes>
+    <releaseNotes>Added support for creating implementations from subinterfaces that expand on properties of their base interfaces.</releaseNotes>
     <projectUrl>https://github.com/haven1433/autoimplement</projectUrl>
-    <copyright>Copyright 2018</copyright>
+    <copyright>Copyright 2019</copyright>
   </metadata>
   <files>
     <file src="artifacts\AutoImplement\bin\Release\AutoImplement.exe" target="" />

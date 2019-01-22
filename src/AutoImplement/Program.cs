@@ -42,13 +42,24 @@ namespace HavenSoft.AutoImplement {
          public bool Equals(MemberInfo a, MemberInfo b) {
             if (a.Name != b.Name) return false;
             if (a.MemberType != b.MemberType) return false;
+
             if (a.MemberType == MemberTypes.Method) {
                var aInfo = (MethodInfo)a;
                var bInfo = (MethodInfo)b;
                if (!object.Equals(aInfo.ReturnType, bInfo.ReturnType)) return false;
                return aInfo.GetParameters().Select(p => p.ParameterType).SequenceEqual(bInfo.GetParameters().Select(p => p.ParameterType));
             }
-            return true; // if it's not a method, then equivalent names is good enough
+
+            if (a.MemberType == MemberTypes.Property) {
+               var aInfo = (PropertyInfo)a;
+               var bInfo = (PropertyInfo)b;
+               if ((aInfo.GetMethod == null) != (bInfo.GetMethod == null)) return false;
+               if ((aInfo.SetMethod == null) != (bInfo.SetMethod == null)) return false;
+               return true;
+            }
+
+            // for other member types, equivalent names is good enough
+            return true;
          }
          public int GetHashCode(MemberInfo obj) => obj.Name.GetHashCode();
       }
@@ -183,7 +194,8 @@ namespace HavenSoft.AutoImplement {
             writer.Write($"public class {builder.ClassDeclaration(type)}");
             using (writer.Scope) {
                builder.AppendExtraMembers(type);
-               foreach (var member in FindAllMembers(type)) {
+               var allMembers = FindAllMembers(type);
+               foreach (var member in allMembers) {
                   var metadata = new MemberMetadata(member, type.Namespace);
                   switch (member.MemberType) {
                      case MemberTypes.Method: ImplementMethod(member, metadata, builder); break;
