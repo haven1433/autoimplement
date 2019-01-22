@@ -12,6 +12,7 @@ namespace HavenSoft.AutoImplement {
    /// </summary>
    public class StubBuilder : IPatternBuilder {
       private readonly List<string> implementedMethods = new List<string>();
+      private readonly List<string> implementedProperties = new List<string>();
 
       private readonly CSharpSourceWriter writer;
 
@@ -168,10 +169,15 @@ namespace HavenSoft.AutoImplement {
       /// The explicit implementation just forwards to the public field's get/set members.
       /// </remarks>
       public void AppendProperty(PropertyInfo info, MemberMetadata property) {
-         // define the backing field
-         writer.Write($"public PropertyImplementation<{property.ReturnType}> {property.Name} = new PropertyImplementation<{property.ReturnType}>();" + Environment.NewLine);
 
-         // define the interface's property
+         // define the backing field if this property hasn't been implemented yet
+         if (!implementedProperties.Contains(property.Name)) {
+            writer.Write($"public PropertyImplementation<{property.ReturnType}> {property.Name} = new PropertyImplementation<{property.ReturnType}>();" + Environment.NewLine);
+            implementedProperties.Add(property.Name);
+         }
+
+         // define the explicit interface implementation
+         // this may run multiple times if the same property is defined on multiple interfaces (example, IReadOnlyList and IList)
          writer.Write($"{property.ReturnType} {property.DeclaringType}.{property.Name}");
          using (writer.Scope) {
             if (info.CanRead) {
@@ -196,14 +202,21 @@ namespace HavenSoft.AutoImplement {
       /// If no implementation is provided, get_Item will just return default.
       /// </remarks>
       public void AppendItemProperty(PropertyInfo info, MemberMetadata property) {
-         if (info.CanRead) {
-            writer.Write($"public Func<{property.ParameterTypes}, {property.ReturnType}> get_Item = ({property.ParameterNames}) => default({property.ReturnType});" + Environment.NewLine);
+         // define the backing get/set_Item methods if this property hasn't been implemented yet
+         if (!implementedProperties.Contains(property.Name)) {
+            if (info.CanRead) {
+               writer.Write($"public Func<{property.ParameterTypes}, {property.ReturnType}> get_Item = ({property.ParameterNames}) => default({property.ReturnType});" + Environment.NewLine);
+            }
+
+            if (info.CanWrite) {
+               writer.Write($"public Action<{property.ParameterTypes}, {property.ReturnType}> set_Item = ({property.ParameterNames}, value) => {{}};" + Environment.NewLine);
+            }
+
+            implementedProperties.Add(property.Name);
          }
 
-         if (info.CanWrite) {
-            writer.Write($"public Action<{property.ParameterTypes}, {property.ReturnType}> set_Item = ({property.ParameterNames}, value) => {{}};" + Environment.NewLine);
-         }
-
+         // define the explicit interface implementation
+         // this may run multiple times if the same property is defined on multiple interfaces (example, IReadOnlyList and IList)
          writer.Write($"{property.ReturnType} {property.DeclaringType}.this[{property.ParameterTypesAndNames}]");
          using (writer.Scope) {
             if (info.CanRead) {
